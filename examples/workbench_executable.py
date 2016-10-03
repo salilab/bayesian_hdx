@@ -1,15 +1,8 @@
 import sys
-sys.path.append( "../../../bayesian_hdx/pyext/src" )
-import input_data
-import sampling
-import system_setup
-import hdx_models
 import argparse
 
-
-# Here, set the default values for variables that can be changed via command line options
 inseq=""
-
+benchmark=False
 # Arguments: HDXWorkbench file, output_dir, run_type, inseq
 parser = argparse.ArgumentParser(description='Analysis of HDXWorkbench DHDX')
 parser.add_argument('input_file', metavar='i', type=str,
@@ -20,22 +13,41 @@ parser.add_argument('--benchmark', help='Run a short benchmark instead of full s
                       action="store_true")
 parser.add_argument('--inseq', metavar='s', type=str,
                     help='Input sequence string', required=False)
-parser.add_argument('--NSTEPS', metavar='n', type=str,
+parser.add_argument('--NSTEPS', metavar='n', type=int,
                     help='Number of steps', required=False)
-
+parser.add_argument('--path', metavar='p', type=str,
+                    help='Path to python code (if not already in PYTHONPATH)', required=False)
+parser.add_argument('--init', metavar='z', type=str,
+                    help='Initialize model by "random" or "enumerate". Random is faster, enumeration is slower, but will speed up sampling convergence',
+                    required=False)
+parser.add_argument('--bins', metavar='b', type=int,
+                    help='Integer number of rate constant bins to use for sampling. Default is 20.',
+                    required=False)
 
 args = parser.parse_args()
-print args
 
-exit()
+sys.path.append( args.path )
+try:
+  import input_data
+except:
+  raise Exception("bayesian_hdx code not in PYTHONPATH. Use --path 'path/to/code/pyext/src' ")
+import sampling
+import system_setup
+import hdx_models
+import plots
+
+if args.inseq is not None:
+    inseq=args.inseq
+
 
 ####################
 ###  What kind of run do you want to do?
 
-if benchmark:
+if args.benchmark:
     run_type = "benchmark" # Use this to run a quick simulation to see how long a full sampling run will tak
 else:
-    run_type = "simulation"   # Use this to do the full sampling/analysis
+    run_type = "sampling"   # Use this to do the full sampling/analysis
+
 
 ##########################################
 ###    File/Directory Setup 
@@ -48,48 +60,59 @@ workbench_file=args.input_file
 
 f=open(workbench_file, "r")
 for line in f.readlines():
+    if line.split(",")[0]=="Offset":
+        offset=int(line.split(",")[1].strip())
     if line.split(",")[0]=="Experiment Protein Sequence":
         inseq=line.split(",")[1]
-        continue
+    if line.split(",")[0]=="Deuterium solution concentration":
+        saturation=float(line.split(",")[1].strip())
+    if line.split(",")[0]=="Experiment name":
+        name=line.split(",")[1].strip().replace(" ","_")  
 
-if inseq="":
+if inseq=="":
     raise Exception("HDX Workbench file does not contain FASTA sequence. Please manually add the sequence to the command line using the flag -s or --inseq")
-
-
-##########################################
-###    Experimental  Input Parameters 
-  
-offset=0                  # offset between fragment start/end values and FASTA sequence.
-sigma0=5                  # Estimate for experimental error in %D Units 
-saturation = 1            # Deuterium saturation in experiment
-percentD=True             # Is the data in percent D (True) or Deuterium units?
 
 ###########################################
 ###    Simulation Parameters
  
-num_exp_bins=20           # Number of log(kex) values for sampling. 20 is generally sufficient. 
-init = "enumerate"        # How to initialize - either "random" or "enumerate". Enumerate is slower but sampling will converge faster
-annealing_steps=200       # steps per temperature in annealing - 100-200 sufficient
-nsteps=20000              # equilibrium steps. 5000 to 10000
+
+# User-controlled variables
+if args.benchmark:
+    benchmark = True
+
+if args.bins is None:
+    num_exp_bins = 20            # Number of log(kex) values for sampling. 20 is generally sufficient. 
+else:
+    num_exp_bins= args.bins 
+
+if args.init is None:
+  if benchmark:
+      init = "random" 
+  else:
+      init = "enumerate"
+else:
+    init = args.init       # How to initialize - either "random" or "enumerate". Enumerate is slower but sampling will converge faster
+
+if args.NSTEPS is None:
+    nsteps=5000              # equilibrium steps. 5000 to 10000
+else:
+    nsteps=args.NSTEPS
 
 num_best_models=1000      # Number of best models to consider for analysis
 
-##########################################
-###     Input Parameters 
-# offset between fragment start/end values and FASTA sequence
-offset=0
-# Estimate for experimental error in %D Units
-sigma0=1    
-# Number of exp     
-num_exp_bins=20   
 
+# Non user controlled vbl - for now. 
+annealing_steps=200       # steps per temperature in annealing - 100-200 sufficient
+sigma0=5                  # Estimate for experimental error in %D Units 
+saturation = 1.0            # Deuterium saturation in experiment
+percentD=True             # Is the data in percent D (True) or Deuterium units? - Always percentD for Workbench.
 ###############################
 ###   System Setup:
 ###############################
 
 
 # Initialize model  (name, FASTA sequence, offset)
-model=system_setup.HDXModel("ERa",
+model = system_setup.HDXModel("name",
                             inseq,
                             offset=offset)
 
@@ -98,26 +121,11 @@ input_data.HDXWorkbench(model, workbench_file)
 
 
 #Initialize a sampling model for each state (Multiexponential in this case)
-
 for state in model.states:
         hdxm = hdx_models.MultiExponentialModel(model = model,
                                          state = state,
                                          sigma=sigma0,
-                                          init = "enumerate")
-        '''
-        for f in state.frags:
-          noa = f.get_num_observable_amides()
-          exp_seq = hdxm.exp_seq[f.start_res-1:f.end_res-1]
-          #print f.start_res, f.end_res, len(hdxm.exp_seq), exp_seq
-          for t in f.timepoints:
-            avg, sd = t.get_avg_sd()
-            s_1 = t.calculate_tp_score(exp_seq, hdxm.exp_grid, 1.0, noa)
-            s_5 = t.calculate_tp_score(exp_seq, hdxm.exp_grid, 5.0, noa)
-            s_10 = t.calculate_tp_score(exp_seq, hdxm.exp_grid, 10.0, noa)
-            s_20 = t.calculate_tp_score(exp_seq, hdxm.exp_grid, 20.0, noa)
-            print noa, t.time, avg, sd, s_1, s_5, s_10, s_20
-        '''
-
+                                          init = init)
 ###############################
 ###   Sampling:
 ###
@@ -136,10 +144,6 @@ if run_type=="sampling":
 
 ###############################
 ###   Analysis:
-
-# Use this line if analyzing data post-run
-# hdxm.import_model_deuteration_from_file(model.states[1].frags, model.states[1].modelfile)
-
 
 plots.plot_2state_fragment_avg_model_fits(model.states[0], model.states[1], 
                                           sig=5.0, 
