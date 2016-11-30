@@ -93,8 +93,8 @@ def do_mc_sampling(model, temp=1, sigma=5.0, error_model="gaussian", NSTEPS=100,
             #print(['%0.2f' % val for val in exp_model.get_indiv_sector_averaged_protection_values(exp_model.exp_seq,s.sectors)])
             #print("sig", numpy.average(sigs), numpy.std(sigs), numpy.max(sigs), numpy.min(sigs))
             if save_results:
-                outfile3= open(s.sigmafile, "a")
-                numpy.savetxt( outfile3 , numpy.atleast_2d(sigs), "%f")
+                outfile3 = open(s.sigmafile, "ab")
+                numpy.savetxt( outfile3 , numpy.atleast_2d(sigs), "%f "*len(sigs))
                 outfile3.close()
         if t%print_t == 0: 
             string=""
