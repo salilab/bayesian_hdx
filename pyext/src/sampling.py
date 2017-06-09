@@ -148,31 +148,34 @@ def exp_model_sector_MC_step(state,exp_model,frags,temp,sigma,error_model="trunc
             if s.seq[ipick]=='P' or s.seq[ipick]=='p':
                 delta=0
                 #print ipick, "is a proline"
-                break
-            elif exp_model.exp_seq[resnum]==0:
-                delta=0
-            #If we are at either endpoint of the grid, go the other way
-            elif exp_model.exp_seq[resnum]==1:
-                delta=1
-            elif exp_model.exp_seq[resnum]==len(exp_model.exp_grid):
-                delta=-1
-            #otherwise, randomly decide whether to increment or decrement
-            elif numpy.random.random_sample()<0.5:
-                delta=1
+                continue
             else:
-                delta=-1
+               delta=numpy.random.random_integers(0,len(exp_model.exp_grid)-1)
+               
+               exp_model.exp_seq[resnum] = delta
+               new_sector_score = exp_model.calculate_bayesian_score(s.fragments,sigma,error_model)
+               randn = numpy.random.random_sample()
+                if new_sector_score-sector_score < 0.0:
+                    # If change is negative, accept the move
+                    sector_score = new_sector_score
+                    #exp_model.exp_seq=deepcopy(seq0)
+                    seq0 = deepcopy(exp_model.exp_seq)
+                    flipped = flipped + 1
 
-            exp_model.exp_seq[resnum]=deepcopy(exp_model.exp_seq[resnum])+delta
-            new_sector_score=exp_model.calculate_bayesian_score(s.fragments,sigma,error_model)
-            randn=numpy.random.random_sample()*2
-            if new_sector_score-sector_score==0.0:
-                exp_model.exp_seq=deepcopy(seq0)
-            elif randn > numpy.exp(-(new_sector_score-sector_score)/temp):
-                exp_model.exp_seq=deepcopy(seq0)
-            else:
-                seq0=deepcopy(exp_model.exp_seq)
-                sector_score=new_sector_score
-                flipped = flipped + 1
+                elif randn < numpy.exp(-(delscore)/1):#temp):
+                    # Negative values of delscore give energies > 1; so this will always be true
+                    # Some positive values of delscore will return a value greater than than randn
+                    sector_score = new_sector_score
+                    flipped = flipped + 1
+                    # Change the seq0 to the modified rate
+                    #exp_model.exp_seq=deepcopy(seq0)
+                    seq0 = deepcopy(exp_model.exp_seq)
+
+                    #print(s.seq, resnum, "||", old, delta, "|FLIP|", delscore, flipped, "|", randn, numpy.exp(-(delscore)/0.01))
+                else:
+                    # If randn is higher than 
+
+                    exp_model.exp_seq=deepcopy(seq0)
 
     if sample_sigma==True: 
 
