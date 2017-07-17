@@ -44,6 +44,9 @@ class MultiExponentialModel(object):
             times+=[t.time for t in tpoints]
         first_tp = numpy.min(times)
         last_tp = numpy.max(times)
+         
+        self.first_tp = first_tp
+        self.last_tp = last_tp
 
         self.state=state
         self.state.exp_model=self
@@ -190,7 +193,7 @@ class MultiExponentialModel(object):
         '''
         frags = deepcopy(self.frags)
 
-        exp_seq=[0]*len(self.exp_seq)
+        exp_seq=[0]*len(self.exp_seq, self.first_tp, self.last_tp)
         exp_grid=self.calc_exp_grid(size_enum)
         print("\n##### Initial Guess: Enumerate #####")
         print("# Enumerating all fragments with gridsize of", size_enum)
