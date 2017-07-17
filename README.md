@@ -46,7 +46,9 @@ To get a rough estimate for how long your run will take, edit the modeling scrip
 ## Output
 Data output is delivered in into the `output` (or user-defined) directory. 
 
-* DHDX Plots - Plots the DHDX magnitude and significance between the apo (or reference) state and perturbed state.
+* HDX Plots - Plots the ensemble of calculated HDX protection factors at each residue for one or more states.
+
+[[https://github.com/saltzberg/bayesian_hdx/master/img/violins.png|alt=violins]]
 
 * Fragment Chi Plots - Plots for each state showing the fragment overlap and colored by the fit of that fragment data to the model.
 
