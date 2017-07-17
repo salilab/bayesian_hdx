@@ -457,11 +457,11 @@ def exp_model_sector_MC_step(state,exp_model,frags,temp,sigma,error_model="trunc
                 #print ipick, "is a proline"
                 continue
             else:
-               delta=numpy.random.random_integers(0,len(exp_model.exp_grid)-1)
+                delta=numpy.random.random_integers(0,len(exp_model.exp_grid)-1)
                
-               exp_model.exp_seq[resnum] = delta
-               new_sector_score = exp_model.calculate_bayesian_score(s.fragments,sigma,error_model)
-               randn = numpy.random.random_sample()
+                exp_model.exp_seq[resnum] = delta
+                new_sector_score = exp_model.calculate_bayesian_score(s.fragments,sigma,error_model)
+                randn = numpy.random.random_sample()
                 if new_sector_score-sector_score < 0.0:
                     # If change is negative, accept the move
                     sector_score = new_sector_score
