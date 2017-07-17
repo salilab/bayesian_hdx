@@ -49,7 +49,7 @@ Data output is delivered in into the `output` (or user-defined) directory.
 
 * HDX Plots - Plots the ensemble of calculated HDX protection factors at each residue for one or more states.
 
-[[https://github.com/salilab/bayesian_hdx/blob/master/img/violins.png]]
+[[https://github.com/salilab/bayesian_hdx/blob/master/img/violins.png ]]
 
 * Fragment Chi Plots - Plots for each state showing the fragment overlap and colored by the fit of that fragment data to the model.
 
