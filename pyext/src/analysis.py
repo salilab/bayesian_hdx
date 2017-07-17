@@ -5,13 +5,126 @@ from __future__ import print_function
 import hdx_models
 import input_data
 import plots
-from scipy.stats import cumfreq
-from scipy.stats import chi2_contingency
+#from scipy.stats import cumfreq
+#from scipy.stats import chi2_contingency
 import numpy
+import math
 import time
 import os.path
 from pylab import *
 from matplotlib import *
+
+
+class ParseOutputFile(object):
+    def __init__(self, output_file, state):
+        self.output_file = output_file
+        self.state = state
+        self.datafiles = []
+        self.sectors = []
+        self.pf_grids = {}
+        self.observed_residues = []
+        self.parse_header()
+
+    def parse_header(self):
+        '''
+        Function that parses the header of output files.
+        Stores the logk grid, along with other experimental information
+        '''
+        f = open(self.output_file)
+        for line in f.readlines():
+            
+            # > means model data (so header is over.)
+            if line[0]==">":
+                break
+            
+            # #-symbol meas datasets
+            elif line[0:2]=="# ":
+                self.datafiles.append( (line[2:].split("|")[0].strip(), float(line[2:].split("|")[1].strip())) )
+            
+            # @-symbol means sectors
+            elif line[0:2]=="@ ":
+                for s_string in line[2:].strip().split("|"):
+                    sector = []
+                    for r in s_string.strip().split(" "):
+                        if r != "":
+                            sector.append(int(r))
+                            self.observed_residues.append(int(r))
+                    self.sectors.append(sector)
+
+            elif line[0:2]=="$ ":
+                if line[2:].split("|")[0].strip() != "Residue_number":
+                    #print(line[2:].split("|")[0].strip())
+                    res = int(line[2:].split("|")[0].strip())
+                    grid = []
+                    for pf in line[2:].split("|")[1].strip().split(" "):
+                        #print(line[2:].split("|")[1].strip().split(" "))
+                        grid.append(float(pf))
+                    self.pf_grids[res] = grid
+
+            elif line.split(":")[0].strip() == "grid_size":
+                self.grid_size = int(line.split(":")[1].strip())
+
+            elif line.split(":")[0].strip() == "State":
+                self.state_name = line.split(":")[1].strip()
+
+            elif line.split(":")[0].strip() == "Molecule_Name":
+                self.molecule_name = line.split(":")[1].strip()
+
+    def get_best_scoring_models(self, N, sigmas=False, return_pf=False):
+        ''' Get the N best scoring models from the output file
+        Returns a list of tuples of best_scoring_models 
+            [(score, [model])]
+        and (if sigmas=True)
+        a grid of the timepoint sigma values.
+        '''
+        # Model entries are marked with a > as the first character
+
+        f = open(self.output_file, "r")
+        best_scoring_models = []
+        # Cycle over all lines
+        for line in f.readlines():
+            if line[0]==">":
+                score = float(line.split("|")[1].strip())
+
+                # if the score is better than the last best score
+                if len(best_scoring_models) < N or score < best_scoring_models[-1][0]:
+                    if len(best_scoring_models) >= N:
+                        del best_scoring_models[-1]
+                    model_string = line[1:].split("|")[0].strip()
+                    model_list = []
+                    for m in model_string.split(" "):
+                        model_list.append(int(m))
+                    if return_pf:
+                        model_list = self.models_to_protection_factors(model_list)
+                    best_scoring_models.append((score, model_list))
+                    best_scoring_models = sorted(best_scoring_models, key=lambda x: x[0])
+
+        self.best_scoring_models = best_scoring_models
+        return best_scoring_models
+
+
+    def models_to_protection_factors(self, models):
+        # Input a list of list of integers.  
+        # CHECK THAT THE MODEL SIZE IS CORRECT!
+        if type(models[0]) != list:
+            models = [models]
+
+        output = []
+        for m in models:
+            pf_model = []
+            for res in range(len(m)):
+                if res + 1 in self.observed_residues:
+                    #print(res+1, m[res-1], self.pf_grids[res+1])
+                    pf_model.append(float(self.pf_grids[res+1][m[res-1]-1]))
+
+                else:
+                    pf_model.append(numpy.nan)
+            output.append(pf_model)
+
+        return output
+
+
+
 
 
 def get_best_scoring_models(modelfile, scorefile, num_best_models=100, prefix=None, write_file=True):
@@ -48,11 +161,69 @@ def get_best_scoring_models(modelfile, scorefile, num_best_models=100, prefix=No
         scores[scores.index(min(scores))]=max(scores)+1
     if write_file:
         output_file=open(outfile, "w")
-        return outfile
+        return top_models, top_scores
     else:
         for i in top_score_indices:
             top_models.append(map(int, models[int(i)].split()) )
         return top_models, top_scores
+
+def sector_sort(sectors):
+    # Given a list of sectors, sort them by residue number
+    last_first_res=0
+    sorted_sectors=[]
+
+    # get last residue of a sector start
+    for s in sectors:
+        if s.start_res > last_first_res:
+            last_first_res = s.start_res
+
+    for n in range(last_first_res+1):
+        for s in sectors:
+            if s.start_res==n:
+                sorted_sectors.append(s)
+                sectors.remove(s)
+
+    return sorted_sectors
+
+def array_frequency(a):
+    #input is numpy array
+    #output is list of 
+    unique, inverse = numpy.unique(a, return_inverse=True)
+    count=numpy.zeros(len(unique), numpy.int)
+    numpy.add.at(count, inverse, 1)
+    return numpy.vstack((unique, count)).T
+
+def get_residue_rate_probabilities(modelfile, scorefile, sectors, seq, grid, num_models=5, outfile="rate_probabilities.dat", offset=0):
+    # Given a set of models (from a best_models.dat file)
+    # returns the probability of observing each rate
+    # If the grid is given, it is outputted in the first line
+    # sectors can be a list of Sector objects, or tuples (first_res, last_res)
+
+    of=open(outfile, "w")
+
+    if hasattr(grid, '__iter__'):
+        grid=len(grid)
+    
+    best_models, best_scores=get_best_scoring_models(modelfile, scorefile, num_models, write_file=False)
+
+    best_models=numpy.array(best_models)
+
+    sorted_sectors=sector_sort(sectors)
+
+    # Loop over all sectors and add up instances of each rate bin
+    for s in sorted_sectors:
+        # get all instances of each rate
+        freq=array_frequency(best_models[:, s.start_res:s.end_res+1])
+        model=numpy.zeros(grid)
+        for i in freq:
+            model[i[0]]=1.0*i[1]/s.num_amides/num_models
+
+        for n in range(s.start_res, s.end_res+1):
+            if seq[n+offset]=="P":
+                of.write(n, "P", numpy.zeros(len(grid), numpy.int))
+            else:
+                of.write(str(n+1)+", "+seq[n+offset]+", " +str([m for m in model])+"\n")
+
 
 def get_convergence(state, num_points=None):
     """ Takes all models in the exp_model of the given state and 
@@ -67,7 +238,7 @@ def get_convergence(state, num_points=None):
         exp_model1=es.exp_models[len(es.exp_models)/2-num_points:len(es.exp_models)/2]
         exp_model2=es.exp_models[len(es.exp_models)-num_points:-1]
         zscore=calculate_zscore(exp_model1, exp_model2, state, state)
-        print(state.state_name)
+        #print(state.state_name)
         #print zscore
         #time.sleep(1)
 
@@ -143,3 +314,6 @@ def calculate_zscore(exp_models1, exp_models2, state1, state2):
     avg2, sd2=get_average_sector_values(exp_models2, state2)
     zscore=numpy.subtract(avg1,avg2)/numpy.sqrt(numpy.add(numpy.add(numpy.square(sd1),numpy.square(sd2)),0.00001))
     return zscore
+
+def calculate_convergence(exp_models1, exp_models2):
+    return 0

@@ -10,7 +10,12 @@ import math
 import analysis
 from pylab import *
 import matplotlib.pyplot as plt
-import matplotlib
+import scipy
+from scipy.stats import gaussian_kde
+#from numpy.random import normal
+from scipy.integrate import simps
+
+   
 
 cdict1 = {'red': ((0.0, 0.0, 0.0),
                  (0.45, 0.0, 0.0),
@@ -27,6 +32,16 @@ cdict1 = {'red': ((0.0, 0.0, 0.0),
 
 def roundup(i, scale):
     return int(math.ceil(i/float(scale)))*scale
+
+def find_minmax(lists):
+    flatlist=[item for sublist in lists for item in sublist]
+    minmax=(math.floor(min(np.array(flatlist))), math.ceil(max(np.array(flatlist))) )
+    return minmax
+
+def calculate_histogram(list, bins):
+    # Given a list of values, calculate a histogram
+    return numpy.histogram(numpy.array(list), bins=bins)
+
 
 def plot_apo_lig_dhdx(model, show_plot=True, save_plot=False, outfile="dhdx.png", outdir=None, noclobber=True):
     """ Takes a sampled model and plots the delta HDX (ligand - Apo) 
@@ -224,8 +239,8 @@ def plot_fragment_chi_values(state, sig="model", outfile=None, show_plot=False, 
     elif show_plot==False:
         plt.savefig(outdir+outfile, bbox_inches=0, format="png")
     else:
-        plt.show()
         plt.savefig(outdir+outfile, bbox_inches=0, format="png")
+        plt.show()
 
 def plot_fragment_avg_model_fits(state, sig, frags="all", outfile=None, show_plot=False):
     if frags=="all":
@@ -385,3 +400,321 @@ def plot_2state_fragment_avg_model_fits(state1, state2, sig, num_best_models=100
             plt.savefig(outdir+outfile, bbox_inches=0, format="png")
         plt.close()
         fig.clear()
+
+def get_cdf(ax,data,pos, bp=False):
+    '''
+    create violin plots on an axis
+    '''
+    dist = max(pos)-min(pos)
+    w = min(0.15*max(dist,1.0),0.5)
+    for d,p in zip(data,pos):
+        k = gaussian_kde(d, bw_method="silverman") #calculates the kernel density
+        m = k.dataset.min() #lower bound of violin
+        M = k.dataset.max() #upper bound of violin
+        x = arange(m,M,(M-m)/100.) # support for violin
+        v = k.evaluate(x) #violin profile (density curve)
+        v = v/v.max()*w #scaling the violin to the available space
+        ax.fill_betweenx(x,p,v+p,facecolor='y',alpha=0.3)
+        ax.fill_betweenx(x,p,-v+p,facecolor='y',alpha=0.3)
+    if bp:
+        ax.boxplot(data,notch=1,positions=pos,vert=1)
+
+
+def calculate_shannon_bits(hist):
+    # From a discrete probability distribution, represented as
+    # a numpy array of probabilities, calculate the shannon information
+    # gain over a uniform distribution
+
+    if sum(hist)==0:
+        return 0
+
+    nbins = len(hist)
+    base_info = numpy.log(nbins)
+    hist_info = 0
+
+    for p in hist:
+        if p != 0:
+            hist_info += p * numpy.log(1/p)
+
+    return base_info - hist_info
+
+def import_output_file(model_file):
+    '''
+    Import an output file 
+    The file will have a header:
+
+    datasources : data_file1, data_file2 # reduced d
+    should have a set of models and the corresponding scores
+    # and a header with certain attributes
+    '''
+    return 0
+
+def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None, plot_prior=True):
+    # Input is a standard output model file and the rate bins
+    # Should note the sectors as well, along with overlap.
+    # Outputs a plot with a sing
+    import csv
+
+    colors = ["red", "blue", "yellow", "green"]
+
+    resnum_label_skip=10
+
+    # Get data and place into list of lists.
+    
+    if type(model_files) != list:
+        model_files = [model_files]
+
+    d_list = []
+    for i in model_files:
+        d_list.append(numpy.loadtxt(i))
+
+    nres = len(d_list[0][0])
+    nmod = len(d_list[0])
+    maxbin = int(numpy.max(d_list[0]))
+
+    # How to calculate xlim? Keep the uniform prior the same proportion of the window
+    # So proportional to 1/bins.  Say 3 or 4 times this value?
+    xlim = 1.0/maxbin * 3
+
+    plt.subplots_adjust(wspace=0)
+
+    if resrange is None:
+        resrange = range(1, nres+1)
+    else:
+        resrange = range(resrange[0], resrange[1]+1)
+
+    bins = range(1,maxbin+1)
+
+    # What is the optimal figsize?
+    fig, ax = plt.subplots(1, len(resrange), sharey='row', figsize=(20,2))
+
+    #print(bins, maxbin)
+
+    data = []
+    if rate_bins is not None:
+        if len(rate_bins) < maxbin:
+            raise Exception("Number of inputted rate_bins is less than the maximum bin in output file.")
+        x = bins
+    else:
+
+        x = bins
+
+    # Calculate the histograms
+    for n in resrange:
+        d_hists=[]
+        for d in d_list:
+            nums = d[:,n]
+            h = calculate_histogram(list(nums), numpy.array(range(maxbin+1))+0.5)
+            hist = 1.0 * h[0] / nmod
+            d_hists.append(hist)
+        data.append(d_hists)
+        # data is a list of lists.  Outer index is resnum, inner index is the dataset.
+
+    # Figure out some way to determine the best ytick rate
+    ytick_rate=2
+
+    # Outer loop over all residues
+    for nd in resrange:
+        # n is the plot index; nd is the residue index
+        n = nd - resrange[0]
+        x_lists = data[n] 
+        print(nd, n, len(x_lists))  
+        for i in range(len(x_lists)):
+            xl = x_lists[i]
+            arr = numpy.array(xl)
+
+            ax[n].set_xticks([]) 
+
+            if nd%resnum_label_skip == 0:
+                ax[n].set_title(str(nd), fontsize=12)
+                ax[n].set_xticks([0]) 
+                ax[n].xaxis.set_ticks_position("top")
+                ax[n].plot([0,0],[x[0]-0.2,x[-1]+0.2], color="black", lw=0.5)
+            
+            # Calculate bits of information
+            bits = calculate_shannon_bits(arr)
+
+            #print(n, i, bits)
+
+            ax[n].set_xlim((-xlim,xlim))
+            ax[n].set_ylim((-numpy.log(len(x))+1,x[-1]+0.2))
+
+            if plot_prior:
+                ax[n].fill_betweenx(x,0,1.0*numpy.ones(len(x))/len(x),facecolor='grey',alpha=0.5, lw=0)
+                ax[n].fill_betweenx(x,0,-1.0*numpy.ones(len(x))/len(x),facecolor='grey',alpha=0.5, lw=0)
+            
+            if sum(arr) != 0:
+                # Fill in the prior probability (uniform for now)
+                ax[n].fill_betweenx(x,0,arr,facecolor=colors[i],alpha=0.5, lw=0)
+                ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)
+                # Add in lower bar for information content
+                ax[n].barh(bottom=-1*bits+1,width=2*xlim/len(x_lists), height=bits,left=-1*xlim+i*2*xlim/len(x_lists),color=colors[i], alpha=0.7, lw=0)
+                for yval in range(1, int(numpy.max(d))+1,ytick_rate):
+                    ax[n].axhline(y=yval,ls='-', lw=0.5)
+
+                #ax[n].set_xticks([str(nd)])       
+            ax[n].tick_params(axis='x', which='major', labelsize=0, color="grey")
+            
+            
+            ax[n].set_frame_on(False)
+            #ax[n].spines['top'].set_visible(False)
+            #ax[n].spines['right'].set_visible(False)
+            #ax[n].spines['bottom'].set_visible(False)
+            #ax[n].spines['left'].set_visible(False)
+
+    ax[0].set_ylabel("HX Rate Bin")
+    ax[0].set_yticks(x[::ytick_rate])
+    #ax[0].tick_params(axis='y', which='major', labelsize=8)
+
+    plt.savefig("test_violins.png", dpi=300, format="png")
+    plt.show()
+
+def plot_residue_protection_factors(parse_output, rate_bins=None, 
+                                    resrange=None, plot_prior=True, 
+                                    resnum_skip=10, num_best_models=100):
+    # Input is a standard output model file and the rate bins
+    # Should note the sectors as well, along with overlap.
+    # Outputs a plot with a sing
+    import csv
+
+    colors = ["red", "blue", "yellow", "green"]
+
+    resnum_label_skip=resnum_skip
+
+    # Get data and place into list of lists.
+    
+    if type(parse_output) != list:
+        parse_output = [parse_output]
+
+    data_list = []
+    for po in parse_output:
+        data_list.append(po.get_best_scoring_models(num_best_models, return_pf=True))
+
+    nres = len(data_list[0][1][1][0])
+    nmod = len(data_list[0])
+
+    maxarr = numpy.ceil(data_list[0][0][1])
+    maxbin = int(numpy.max(maxarr[~numpy.isnan(maxarr)]))
+    minarr = numpy.floor(data_list[0][0][1])
+    minbin = int(numpy.min(minarr[~numpy.isnan(minarr)]))
+    print(maxbin, minbin, nres, nmod)
+
+    pf_list = []
+    # make array of models
+    for d in data_list:
+        pfs = []        
+        for i in d:
+            pfs.append(numpy.array(i[1][0]))
+            #print(i[1][0])
+        pf_list.append(numpy.array(pfs))
+        #print(len(data_list),len(pf_list), len(pf_list[0]), len(pf_list[0][0]))
+
+    # How to calculate xlim? Keep the uniform prior the same proportion of the window
+    # So proportional to 1/bins.  Say 3 or 4 times this value?
+    xlim = 1.0/maxbin * 3
+
+    plt.subplots_adjust(wspace=0)
+
+    if resrange is None:
+        resrange = range(1, nres+1)
+    else:
+        resrange = range(resrange[0], resrange[1]+1)
+
+    bins = range(1,maxbin+1)
+
+    # What is the optimal figsize?
+    fig, ax = plt.subplots(1, len(resrange), sharey='row', figsize=(20,2))
+
+    #print(bins, maxbin)
+
+    data = []
+    if rate_bins is not None:
+        if len(rate_bins) < maxbin:
+            raise Exception("Number of inputted rate_bins is less than the maximum bin in output file.")
+        x = bins
+    else:
+        x = numpy.linspace(minbin,maxbin,parse_output[0].grid_size-1)
+
+    # Calculate the histograms
+    for n in resrange:
+        d_hists=[]
+        for d in pf_list:
+            #print(type(d), d)
+            nums = d[:,n-1]
+            #print(n, nums, nums[0])
+            if math.isnan(nums[0]):
+                d_hists.append(numpy.zeros(parse_output[0].grid_size-1))
+            else:
+                h = calculate_histogram(list(nums), numpy.linspace(minbin,maxbin,parse_output[0].grid_size))
+                #print(n-1, nums, h)
+                hist = 1.0 * h[0] / nmod
+                d_hists.append(hist)
+        data.append(d_hists)
+        # data is a list of lists.  Outer index is resnum, inner index is the dataset.
+
+    # Figure out some way to determine the best ytick rate
+    ytick_rate=10
+
+    # Outer loop over all residues
+    for nd in resrange:
+        # n is the plot index; nd is the residue index
+        n = nd - resrange[0]
+        x_lists = data[n] 
+        print(nd, n, len(x_lists))  
+        for i in range(len(x_lists)):
+            xl = x_lists[i]
+            arr = numpy.array(xl)
+
+            ax[n].set_xticks([]) 
+
+            if nd%resnum_label_skip == 0:
+                ax[n].set_title(str(nd), fontsize=12)
+                ax[n].set_xticks([0]) 
+                ax[n].xaxis.set_ticks_position("top")
+                ax[n].plot([0,0],[x[0]-0.2,x[-1]+0.2], color="black", lw=0.5)
+            
+            # Calculate bits of information
+            bits = calculate_shannon_bits(arr)
+
+            #print(n, i, bits)
+
+            ax[n].set_xlim((-xlim,xlim))
+            ax[n].set_ylim((-numpy.log(len(x))+1,x[-1]+0.2))
+
+            if plot_prior:
+                # Fill in the prior probability (uniform for now)
+                ax[n].fill_betweenx(x,0,1.0*numpy.ones(len(x))/len(x),facecolor='grey',alpha=0.5, lw=0)
+                ax[n].fill_betweenx(x,0,-1.0*numpy.ones(len(x))/len(x),facecolor='grey',alpha=0.5, lw=0)
+
+         
+            if not math.isnan(arr[0]):
+                #print(nd, x, arr, len(arr), len(x), numpy)
+                ax[n].fill_betweenx(x,0,arr,facecolor=colors[i],alpha=0.5, lw=0)
+                ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)   
+                # Add in lower bar for information content
+                ax[n].barh(bottom=-1*bits+minbin,width=2*xlim/len(x_lists), height=bits,left=-1*xlim+i*2*xlim/len(x_lists),color=colors[i], alpha=0.7, lw=0)
+                for yval in range(minbin, maxbin, ytick_rate):
+                    ax[n].axhline(y=yval,ls='-', lw=0.5)
+            else:
+                ax[n].fill_betweenx(x,0,numpy.zeros(parse_output[0].grid_size-0),facecolor=colors[i],alpha=0.5, lw=0)
+                #ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)  
+
+                #ax[n].set_xticks([str(nd)])       
+            ax[n].tick_params(axis='x', which='major', labelsize=0, color="grey")
+            
+            
+            ax[n].set_frame_on(False)
+            #ax[n].spines['top'].set_visible(False)
+            #ax[n].spines['right'].set_visible(False)
+            #ax[n].spines['bottom'].set_visible(False)
+            #ax[n].spines['left'].set_visible(False)
+
+    ax[0].set_ylabel("Log(Protection Factor)")
+    ax[0].set_yticks(x[::ytick_rate])
+    #ax[0].tick_params(axis='y', which='major', labelsize=8)
+
+    plt.savefig("test_violins_pf.png", dpi=300, format="png")
+    plt.show()
+
+
+    #fig, ax = plt.subplots(nrows=1, ncols=nres, figsize=(20,5))
