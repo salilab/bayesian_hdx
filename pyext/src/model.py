@@ -75,7 +75,7 @@ class ResidueGridModel(object):
         # Function that returns that available values to each residue
         return self.get_sampling_grid()
 
-    def convert_model_to_exchange_rates(self, model, intrinsic):
+    def convert_model_to_exchange_rates(self, model):
         pass
 
     def convert_model_to_protection_factors(self, model):

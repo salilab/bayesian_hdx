@@ -588,8 +588,10 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
 
     data_list = []
     for po in parse_output:
+        #print(po, len(po.get_best_scoring_models(num_best_models, return_pf=True)))
         data_list.append(po.get_best_scoring_models(num_best_models, return_pf=True))
 
+    #print(len(data_list), len(data_list[0]))
     nres = len(data_list[0][1][1][0])
     nmod = len(data_list[0])
 
