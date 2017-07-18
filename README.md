@@ -1,5 +1,5 @@
 # bayesian_hdx
-Bayesian Analysis of DHDX-MS Data. Calculate the magnitude and significance of a perturbation in HDX at quasi-residue resolution.
+Bayesian Analysis of HDX-MS Data. Calculate the magnitude and significance of a perturbation in HDX at quasi-residue resolution.
 
 ### Requirements
 * python 2.7 or 3.X. 
@@ -27,11 +27,12 @@ HDX-MS data can read directly from the output .csv file from HDXWorkbench.
 
 Data can also be read from a .csv file with the following format:
 ```
-# peptide_seq, start_res, end_res, time, D_inc 
-AAMNST, 1, 6, 10, 3.212346
-AAMNST, 1, 6, 30, 8.5279405
-AAMNST, 1, 6, 90, 20.9023379
+# peptide_seq, start_res, time, D_inc, Score [optional] 
+AAMNST, 1, 10, 3.212346
+AAMNST, 1, 30, 8.5279405
+AAMNST, 1, 90, 20.9023379
 ```
+Currently, the "Score" column is not used, but will be in upcoming versions
 
 See the `examples/simulated_system/data` for examples.  Support for other HDX data formats will be added as requested.
 
@@ -46,7 +47,9 @@ To get a rough estimate for how long your run will take, edit the modeling scrip
 ## Output
 Data output is delivered in into the `output` (or user-defined) directory. 
 
-* DHDX Plots - Plots the DHDX magnitude and significance between the apo (or reference) state and perturbed state.
+* HDX Plots - Plots the ensemble of calculated HDX protection factors at each residue for one or more states.
+
+[[https://github.com/salilab/bayesian_hdx/blob/master/img/violins.png ]]
 
 * Fragment Chi Plots - Plots for each state showing the fragment overlap and colored by the fit of that fragment data to the model.
 
