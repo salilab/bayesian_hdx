@@ -189,7 +189,6 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             for s in states:
                 d = Dataset(name=s, sequence=sequence, conditions=conditions, input_file=infile)
                 datasets.append(d)
-                print(s, d)
 
         #############################################################
         #  This is replicate data. 
@@ -597,32 +596,5 @@ class Output(object):
                     outstring += str(tp.get_sigma()) + " "
 
         f.write(outstring + "\n")
-
-
-class ParseOutputFile(object):
-    ''' Class that consolidates an output file
-    '''
-    def __init__(self, infile):
-        self.output_file = infile
-
-        for l in self.output_file.readlines():
-            if l[0] == "#":
-                self.read_header(line)
-
-    def read_header(self, line):
-        fields = line[1:].strip().split()
-
-        if fields[0] == "logk_grids":
-            self.logk_grid = numpy.linspace(fields[1], fields[2], fields[3])
-            return False
-        elif fields[0] == "peptides":
-            # Each peptide is a tuple
-            pass
-
-        elif fields[0]=="models":
-            mstring=""
-            for l in self.output_file.readlines():
-                models+=l
-            self.models = numpy.genfromtxt(models)
 
 
