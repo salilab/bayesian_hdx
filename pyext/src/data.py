@@ -277,6 +277,7 @@ class Peptide(object):
         self.charge_state = charge_state
         self.retention_time = retention_time
         self.mass = tools.calculate_mass(self.sequence)
+        self.observable_residue_numbers = self.calculate_observable_residue_numbers()
 
     def calculate_average_deuteration(self):
         # Average the deuteration for all timepoints
@@ -312,6 +313,9 @@ class Peptide(object):
         return range(self.start_residue, self.start_residue + len(self.sequence))
 
     def get_observable_residue_numbers(self):
+        return self.observable_residue_numbers
+
+    def calculate_observable_residue_numbers(self):
         # Only returns those residue numbers that are observable
         # (no N-terminal and no prolines)
         orns = self.get_residue_numbers()
@@ -319,9 +323,10 @@ class Peptide(object):
         orns = orns[self.dataset.nfastamides:]
 
         orns2 = []
-        for rn in orns:
-            if self.dataset.state.get_sequence()[rn-1] != 'P':
-                orns2.append(rn)
+
+        for prn in range(self.dataset.nfastamides, len(self.sequence)):
+            if self.sequence[prn] != 'P':
+                orns2.append(prn+self.start_residue+1)
 
         if len(orns2) != self.num_observable_amides:
             raise Exception("Peptide.get_observable_residue_numbers: Something is wrong with this calculation")

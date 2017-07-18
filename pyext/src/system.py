@@ -7,6 +7,7 @@ from __future__ import print_function
 from scoring import GaussianNoiseModel
 import hxio
 import numpy
+import math
 import scipy
 import tools
 #from model import ResidueGridModel
@@ -439,7 +440,7 @@ class State(object):
             peptide_score = 0
             for tp in pep.get_timepoints():
                 # initialize tp score to the sigma prior
-                tp_score = -1*numpy.log(scoring_function.experimental_sigma_prior(tp.sigma, sigma0))
+                tp_score = -1*math.log(scoring_function.experimental_sigma_prior(tp.sigma, sigma0))
 
                 # Get deuteration percent of this timepoint with the given Pfs
                 model_tp_deut = tp.get_model_deuteration()
@@ -450,7 +451,7 @@ class State(object):
                 for rep in tp.get_replicates():
                     #####
                     replicate_likelihood = scoring_function.replicate_score(model=model_tp_deut, exp=rep.deut, sigma=tp.sigma) 
-                    rep.set_score(-1*numpy.log(replicate_likelihood))
+                    rep.set_score(-1*math.log(replicate_likelihood))
 
                     tp_score += rep.get_score()
 

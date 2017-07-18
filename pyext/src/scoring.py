@@ -5,6 +5,7 @@ from __future__ import print_function
 import numpy
 import tools
 import scipy
+import math
 
 
 
@@ -31,9 +32,9 @@ class GaussianNoiseModel(object):
     def replicate_score(self, model, exp, sigma):
         # Forward model
         #priors = self.model_prior(protection_factor) * self.exp_prior(exp) * self.sigma_prior()
-        raw_likelihood = numpy.exp(-((model-exp)**2)/(2*sigma**2))/(sigma*numpy.sqrt(2*numpy.pi))
+        raw_likelihood = math.exp(-((model-exp)**2)/(2*sigma**2))/(sigma*math.sqrt(2*numpy.pi))
         if self.truncated:
-            raw_likelihood *= 1/ ( 0.5 * ( scipy.special.erf( (self.upper_bound-exp)/sigma * numpy.sqrt(3.1415) ) - scipy.special.erf( (self.lower_bound-exp)/sigma * numpy.sqrt(3.1415) ) )  )
+            raw_likelihood *= 1/ ( 0.5 * ( scipy.special.erf( (self.upper_bound-exp)/sigma * math.sqrt(3.1415) ) - scipy.special.erf( (self.lower_bound-exp)/sigma * math.sqrt(3.1415) ) )  )
         return raw_likelihood
 
     def deuterium_incorporation_prior(self, exp):
@@ -58,7 +59,7 @@ class GaussianNoiseModel(object):
 
     def experimental_sigma_prior(self, sigma, sigma0):
         # Prior on the sigma value. Long tailed to allow for outlier values.
-        return (20.0 / sigma**2) * numpy.exp(-sigma0**2 / sigma**2)
+        return (20.0 / sigma**2) * math.exp(-sigma0**2 / sigma**2)
 
 
 

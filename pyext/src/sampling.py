@@ -270,7 +270,7 @@ class MCSampler(object):
                 init_sigma = deepcopy(dataset.get_peptides()[0].get_timepoints()[0].get_sigma())
                 new_sigma = self.sigma_sampler.propose_move(init_sigma)
                 dataset.set_sigma(new_sigma)
-                new_score = -1*numpy.log(dataset.state.scoring_function.experimental_sigma_prior(new_sigma, dataset.sigma_estimate))
+                new_score = -1*math.log(dataset.state.scoring_function.experimental_sigma_prior(new_sigma, dataset.sigma_estimate))
                 new_score += state.calculate_peptides_score(dataset.get_peptides(), state.output_model.model_protection_factors)
 
                 if not metropolis_criteria(init_score, new_score, temperature):
@@ -286,7 +286,7 @@ class MCSampler(object):
                     init_sigma = deepcopy(pep.sigma)
                     new_sigma = self.sigma_sampler.propose_move(init_sigma)
                     dataset.set_sigma(new_sigma)
-                    new_score = -1*numpy.log(dataset.state.scoring_function.experimental_sigma_prior(new_sigma, dataset.sigma_estimate))
+                    new_score = -1*math.log(dataset.state.scoring_function.experimental_sigma_prior(new_sigma, dataset.sigma_estimate))
                     new_score += dataset.system.calculate_peptides_score([pep], state.output_model.model_protection_factors)
                     if not metropolis_criteria(init_score, new_score, temperature):
                         # Reset the sigma back to the original one
@@ -300,14 +300,14 @@ class MCSampler(object):
                         init_sigma = deepcopy(tp.get_sigma())
                         tp_model_deut = tp.model_deuteration
                         #init_score = tp.get_score()
-                        init_score = -1*numpy.log(state.scoring_function.experimental_sigma_prior(init_sigma, dataset.sigma_estimate))
+                        init_score = -1*math.log(state.scoring_function.experimental_sigma_prior(init_sigma, dataset.sigma_estimate))
                         for rep in tp.get_replicates():
                             init_score += state.scoring_function.replicate_score(tp_model_deut, rep.deut, init_sigma)
                         #print(pep.sequence, tp.time)
                         new_sigma = self.sigma_sampler.propose_move(init_sigma)
                         #if new_sigma is not None:
                         #print(new_sigma, tp.get_sigma())
-                        new_score = -1*numpy.log(state.scoring_function.experimental_sigma_prior(new_sigma, dataset.sigma_estimate))
+                        new_score = -1*math.log(state.scoring_function.experimental_sigma_prior(new_sigma, dataset.sigma_estimate))
                         
                         for rep in tp.get_replicates():
                             new_score += state.scoring_function.replicate_score(tp_model_deut, rep.deut, new_sigma)

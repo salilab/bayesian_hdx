@@ -266,7 +266,7 @@ def calculate_peptide_mass(string):
 def calculate_simple_deuterium_incorporation(rate, time):
     # Calculates the deuterium incorporation for a log(kex)
     # at time = t (seconds) assuming full saturation
-    return 1 - numpy.exp(-1*10**rate*time)
+    return 1 - math.exp(-1*10**rate*time)
 
 def get_residue_deuteration_at_each_timepoint(dataset, protection_factors):
     # Returns the deuterium incorporation for each residue at each timepoint in
@@ -277,7 +277,7 @@ def get_residue_deuteration_at_each_timepoint(dataset, protection_factors):
     for tp in timepoints:
         deuterations = []
         for i in range(len(protection_factors)):
-            if dataset.intrinsic[i] is math.isnan(dataset.intrinsic[i]) or i == numpy.inf or i == -1 * numpy.inf:
+            if math.isnan(dataset.intrinsic[i]) or i == numpy.inf or i == -1 * numpy.inf:
                 deuterations.append(0)
             else:
 
@@ -296,7 +296,7 @@ def get_residue_deuteration_at_each_timepoint(dataset, protection_factors):
 def get_residue_peptide_deuteration_at_each_timepoint(peptides, protection_factors):
     # Returns the deuterium incorporation for each residue at each timepoint in
     # the given dataset and given protection factors
-    #deuterations_by_time = {}
+    # deuterations_by_time = {}
 
     for pep in peptides:
         dataset = pep.dataset
@@ -304,15 +304,17 @@ def get_residue_peptide_deuteration_at_each_timepoint(peptides, protection_facto
         for tp in pep.get_timepoints():
             total_deut = 0
             for i in pep.get_observable_residue_numbers():
-                if dataset.intrinsic[i-1] is math.isnan(dataset.intrinsic[i-1]) or protection_factors[i-1] == numpy.inf or protection_factors[i-1] == -1 * numpy.inf:
-                    p=0
-                else:
-
+                if dataset.intrinsic[i-1] * 0 == 0:
+                #if math.isnan(dataset.intrinsic[i-1]) or protection_factors[i-1] == numpy.inf or protection_factors[i-1] == -1 * numpy.inf:
+                #    p = 0
+                #else:
                     log_kex = dataset.intrinsic[i-1] - protection_factors[i-1] 
                     # Deuterium incorporation is scaled by the amount of deuterium in solution
                     deut = calculate_simple_deuterium_incorporation(log_kex, tp.time) * dataset.conditions.saturation
                     #print(i, dataset.intrinsic[i-1], protection_factors[i-1], log_kex, deut)
                     total_deut += deut
+                else:
+                    p = 0
             #print(pep.sequence, tp.time, total_deut)
             tp.set_deuteration(total_deut)
             #deuterations_by_time[tp.time] = deuterations
@@ -337,7 +339,7 @@ def calc_peptide_isotopic_distribution(string, threshold = 0.1):
 
 
 def calculate_deut(rate, time):
-    return 1-numpy.exp(-10**rate*time)
+    return 1-math.exp(-10**rate*time)
 
 
 def simulate_peptide_data(seq, start_res, exch_rates, timepoints, replicates=3, obs_error=5, percentD=True):
