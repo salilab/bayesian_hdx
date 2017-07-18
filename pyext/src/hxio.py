@@ -158,13 +158,13 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             conditions.recovery = float(value)
         if param=="Experiment Protein Sequence":
             file_sequence = str(value)
-            if file_sequence != sequence:
+            if file_sequence != sequence and sequence is not None:
                 print("WARNING: Sequence in HDXWorkbench file does not match inputted sequence")
-            sequence = file_sequence
+            sequence = file_sequence.strip()
         if param=="Experiment name":
-            self.name = str(value).replace(" ","_")
+            name = str(value).replace(" ","_")
         line=f.readline()
-
+    states = set()
     for line in f:
 
         # For nothing, just keep going
@@ -178,17 +178,18 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
 
         # This is a consolidated fragment entry. Just grab the state names for now 
         # (only two states in current format).
-        if len(line.split(',')) >= 1 and column_headers != None and line.split(',')[column_headers.index("percentd_replicate")]=="NA":
-            states = []
+        if len(line.split(',')) >= 1 and column_headers != None and line.split(',')[column_headers.index("percentd_replicate")]=="NA" and len(states)==0:
             
-            states.append(line.split(',')[column_headers.index("sample1_name")].replace(" ","_"))
-            states.append(line.split(',')[column_headers.index("sample2_name")].replace(" ","_"))
+            
+            states.add(line.split(',')[column_headers.index("sample1_name")].replace(" ","_"))
+            states.add(line.split(',')[column_headers.index("sample2_name")].replace(" ","_"))
 
-        # Now create the different dataset
-        datasets=[]
-        for s in states:
-            d = Dataset(name=s, sequence=sequence, conditions=conditions, input_file=infile)
-            datasets.append(d)
+            # Now create the different dataset
+            datasets=[]
+            for s in states:
+                d = Dataset(name=s, sequence=sequence, conditions=conditions, input_file=infile)
+                datasets.append(d)
+                print(s, d)
 
         #############################################################
         #  This is replicate data. 
@@ -225,18 +226,11 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             for data in datasets:
                 if state_name == data.name:
                     # If the peptide is not there...create the peptide
-                    #print(len(datasets), datasets[0].name, datasets[1].name )
-                    if not data.is_this_peptide_in_dataset(peptide_sequence, start_residue, charge_state):
+                    (is_pep_in, new_peptide) = data.is_this_peptide_in_dataset(peptide_sequence, start_residue, charge_state)
+                    if new_peptide is None:
                         new_peptide = data.create_peptide(sequence=peptide_sequence, start_residue=start_residue, charge_state=charge_state)
-                        #if new_peptide is not None:
-                        #    print("Peptide ", peptide_sequence, "chg=",charge_state, "created for state", state_name)
-                        #else:
-                        #    print("Skipping this peptide")
 
-                    # If it is there...grab that peptide
-                    else:   
-                        new_peptide = next((pep for pep in data.get_peptides() if pep.sequence==peptide_sequence and pep.start_residue==start_residue and pep.charge_state==charge_state), None)
-
+            #print("Replicate", new_peptide)
             # Now, once the we know the peptide is there (or has just been created), add the data
             if new_peptide is not None:
                 time = float(line.split(',')[column_headers.index("timepoint")].replace("s",""))

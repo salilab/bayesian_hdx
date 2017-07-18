@@ -29,7 +29,7 @@ class System(object):
         else:
             self.output = None
 
-    def add_macromolecule(self, sequence, name=None):
+    def add_macromolecule(self, sequence, name=None, initialize_apo=True):
         """ add a Macromolecule to the experiment. Sequence can either be
         a string or a filename.
         @param sequence - FASTA string OR filepath
@@ -56,11 +56,11 @@ class System(object):
         else:
             if name is None:
                 raise Exception("Please give a name to molecule with sequence" + sequence)
-            self.macromolecules.append(Macromolecule(self, name, sequence))
+            self.macromolecules.append(Macromolecule(self, name, sequence, initialize_apo))
 
         return self.macromolecules[-1]
 
-    def get_molecules(self):
+    def get_macromolecules(self):
         return self.macromolecules 
 
     def get_output(self):
@@ -81,7 +81,7 @@ class Macromolecule(object):
     def get_sequence(self):
         return self.sequence
 
-    def add_state(self, name, perturbations):
+    def add_state(self, name, perturbations=None):
         new_state = State(self, name, perturbations)
         self.states.append(new_state)
         return new_state
@@ -191,6 +191,7 @@ class State(object):
         '''
         self.output_model = model
         self.has_model=True
+        return self.output_model
 
     def set_scoring_function(self, scoring_function=GaussianNoiseModel):
         self.scoring_function = scoring_function

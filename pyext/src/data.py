@@ -39,7 +39,7 @@ class Dataset(object):
     Intrinsic rates are calculated and stored here
     """   
 
-    def __init__(self, name, conditions, sequence, input_file=None, error_estimate=5.0, offset=0, number_fast_exchanging_amides=2):
+    def __init__(self, name, conditions, sequence, input_file=None, error_estimate=5.0, offset=1, number_fast_exchanging_amides=2):
         self.raw_data_file = input_file
         self.conditions = conditions
         self.sequence = sequence
@@ -219,8 +219,8 @@ class Dataset(object):
 
         Then for each replicate:
         > Sequence, Start_residue, Charge, RT, recovery
-        time, deut, replicate, "confidence"
-        time, deut, replicate, "confidence"
+        time, deut, replicate, score
+        time, deut, replicate, score
 
         '''
 
