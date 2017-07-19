@@ -292,8 +292,35 @@ def get_residue_deuteration_at_each_timepoint(dataset, protection_factors):
 
     return deuterations_by_time
 
+def calculate_incorporation(intrinsic, protection_factors, timepoints):
+    if len(intrinsic) != len(protection_factors):
+        raise Exception("Intrinsic exchange factors and protection factor list not the same length")
 
-def get_residue_peptide_deuteration_at_each_timepoint(peptides, protection_factors):
+    incorporations = {}
+    for n in range(len(intrinsic)):
+        res_incorps = {}
+        for tp in timepoints:
+            log_kex = intrinsic[n] - protection_factors[n]
+            res_incorps[tp] = calculate_simple_deuterium_incorporation(log_kex, tp)
+
+        incorporations[n+1] = res_incorps
+
+    return incorporations
+
+def get_peptide_deuteration(peptide, protection_factors):
+    deuts = {}
+    for tp in peptide.get_timepoints():
+        deuts[tp.time] = get_timepoint_deuteration(peptide, tp.time, protection_factors)
+    return deuts
+
+def get_timepoint_deuteration(peptide, time, protection_factors):
+    for r in peptide.get_observable_residue_numbers():
+        pf = protection_factors[r-1]
+        kr = peptide.dataset.intrinsic[r-1]
+        deut += calculate_simple_deuterium_incorporation(kr - pf, time) * peptide.dataset.conditions.saturation
+    return deut
+
+def get_residue_peptide_deuteration_at_each_timepoint(sequence, peptides, protection_factors):
     # Returns the deuterium incorporation for each residue at each timepoint in
     # the given dataset and given protection factors
     # deuterations_by_time = {}
@@ -304,6 +331,7 @@ def get_residue_peptide_deuteration_at_each_timepoint(peptides, protection_facto
         for tp in pep.get_timepoints():
             total_deut = 0
             for i in pep.get_observable_residue_numbers():
+
                 if dataset.intrinsic[i-1] * 0 == 0:
                 #if math.isnan(dataset.intrinsic[i-1]) or protection_factors[i-1] == numpy.inf or protection_factors[i-1] == -1 * numpy.inf:
                 #    p = 0
