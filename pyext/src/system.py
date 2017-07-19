@@ -266,7 +266,7 @@ class State(object):
         is observed in the set of HDX fragments
         '''
         if peptides is None:
-            peptides = self.peptides
+            peptides = self.get_all_peptides()
 
         if len(peptides)==0:
             print("No peptides imported into this state:", self.state_name)
@@ -276,9 +276,8 @@ class State(object):
 
         for n in range(len(self.sequence)):
             for p in peptides:
-                #cannot observe first two amides, do not count them in coverage
-                if n >= f.start_res and n < f.end_res-1:
-                    self.coverage[n]+=1
+                if n+1 in p.get_observable_residue_numbers():
+                    self.coverage[n-1]+=1
         return self.coverage
 
     def get_all_peptides(self):
