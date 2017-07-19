@@ -569,8 +569,11 @@ class Output(object):
 
     def write_datasets(self):
         outdir = self.output_directory + "/datasets/"
-        os.mkdir(outdir)
-        for mmols in self.sys.get_macromolecules():
+        try:
+            os.mkdir(outdir)
+        except:
+            pass
+        for mmols in self.system.get_macromolecules():
             for state in mmols.get_states():
                 for dataset in state.get_datasets():
                     outfile = outdir + mmols.name +"_" + state.name + "_" + dataset.name + ".hxd"
