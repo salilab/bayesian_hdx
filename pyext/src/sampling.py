@@ -154,11 +154,14 @@ class MCSampler(object):
         for s in self.states:
             init_score += s.calculate_score(s.output_model.model)
             output_files.append(open(output.get_output_file(s), "a"))
+            for d in s.data:
+                d.collect_times()
 
+        print("Step, score, model_avg_protection_factor, mc_acceptance_ratio")
         for i in range(NSTEPS):
             score, model_avg, acceptance = self.run_one_step(temperature, write_all)
             acceptance_total += acceptance
-            print(i, score, model_avg, acceptance)
+            print("Step %i, %0.1f | %0.2f, %0.3f" % (i, score, model_avg, acceptance))
             if write:
                 for s in range(len(self.states)):
                     st = self.states[s]
@@ -227,26 +230,39 @@ class MCSampler(object):
                 oldscore = r_sector.get_score()
                 oldval = int(state.output_model.get_model_residue(r))
                 newval = self.residue_sampler.propose_move(oldval) 
-                state.output_model.change_residue(r, newval)
 
-                newscore = r_sector.calculate_sector_score(state.output_model.model_protection_factors)
-                
+                # First, change the residue in the model
+                state.output_model.change_residue(r, newval)
+                # Then, change the deuteration state of each timepoint
+                state.change_single_residue_incorporation(r, newval)
+                # Now, calculate the score again. 
+                newscore = state.calculate_peptides_score(r_sector.get_peptides(), state.output_model.model_protection_factors)
+
                 accept = metropolis_criteria(oldscore, newscore, temperature)
+                #print("SCORE:", oldscore, newscore, accept)
                 if not accept:
                     flips -= 1
                     state.output_model.change_residue(r, oldval)
+                    state.change_single_residue_incorporation(r, oldval)
                     r_sector.set_score(oldscore)
-
+            flips2 = 0
+            for i in range(len(init_model)):
+                if init_model[i] != state.output_model.model[i]:
+                    flips2 += 1
+                cumchange = (state.output_model.model[i] - init_model[i])**2
+            #print(math.sqrt(cumchange), init_model)
+            #print(math.sqrt(cumchange), state.output_model.model)
             if self.sigma_sample_level is not None:
                 for d in state.data:
                     self.sample_sigma(state, temperature)
+                    #print(d.get_peptides()[10].get_timepoints()[2].get_sigma(), d.get_peptides()[5].get_timepoints()[2].get_sigma())
 
-            state_score = state.calculate_score(state.output_model.model)
+            state_score = state.calculate_peptides_score(None, state.output_model.model_protection_factors)
 
             total_score += state_score
 
             acceptance_ratio += float(flips)/len(resis)
-
+            #print("XX", oldscore, newscore, state.calculate_peptides_score(r_sector.get_peptides(), state.output_model.model_protection_factors))
             mpf = state.output_model.model_protection_factors
             tot_mpf = 0
             num_mpf = 0

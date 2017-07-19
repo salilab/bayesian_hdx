@@ -52,6 +52,23 @@ class Dataset(object):
         self.name = name
         self.sigma0 = error_estimate
         self.peptide_dict = {}
+        self.times = set([tp.time for tp in self.get_all_timepoints()])
+
+    def collect_times(self):
+        self.times = set([tp.time for tp in self.get_all_timepoints()])
+
+    def get_peptides_with_residue(self, resnum):
+        peptides = []
+        for pep in self.get_peptides():
+            if resnum in pep.get_observable_residue_numbers():
+                peptides.append(pep)
+        return peptides
+
+    def get_all_tp_avg_sigmas(self):
+        sigmas = []
+        for tp in self.get_all_timepoints():
+            sigmas.append(tp.get_avg_sd())
+        return sigmas
 
     def set_tp_sigmas_by_replicate(self, replicate_number, sigma):
         pass
@@ -180,6 +197,9 @@ class Dataset(object):
                 tps.append(tp)
         return tps
 
+    def get_all_times(self):
+        return self.times
+
     def create_peptide(self, sequence, start_residue, peptide_id=None, sigma=1.0, charge_state=None, retention_time=None):
         '''
         Manually creates a peptide object
@@ -254,6 +274,18 @@ class Dataset(object):
         for pep in self.get_peptides():
             pep.set_sigma(sigma)
 
+    def sum_residue_incorporations(self, deut_by_residue):
+        for pep in self.get_peptides():
+            residues = pep.get_observable_residue_numbers()
+            for tp in pep.get_timepoints():
+                deut = 0
+                for r in residues:
+                    #print(pep.sequence, tp.time, deut, deut_by_residue[tp.time])
+                    deut += deut_by_residue[r-1][tp.time]
+                #print(pep.sequence, tp.time, deut)
+                tp.set_deuteration(deut * self.conditions.saturation)
+
+
 
 
 class Peptide(object):
@@ -326,11 +358,10 @@ class Peptide(object):
 
         for prn in range(self.dataset.nfastamides, len(self.sequence)):
             if self.sequence[prn] != 'P':
-                orns2.append(prn+self.start_residue+1)
+                orns2.append(prn+self.start_residue)
 
         if len(orns2) != self.num_observable_amides:
-            raise Exception("Peptide.get_observable_residue_numbers: Something is wrong with this calculation")
-
+            raise Exception("Peptide.get_observable_residue_numbers: Something is wrong with this calculation") 
         return orns2
 
     def get_id(self):
@@ -467,9 +498,9 @@ class Timepoint(object):
             for r in self.replicates:
                 sum_deut=sum_deut+float(r.deut)
                 sumsq_deut=sumsq_deut+r.deut**2
-            self.avg=sum_deut/self.num_replicates
-            self.sd=numpy.sqrt((self.num_replicates*sumsq_deut-sum_deut**2)/self.num_replicates**2)
-        return self.avg, self.sd
+            self.avg=sum_deut/len(self.replicates)
+            self.sd=numpy.sqrt((len(self.replicates)*sumsq_deut-sum_deut**2)/(len(self.replicates)**2))
+        return (self.avg, self.sd)
 
     def get_model_avg(self):
         if len(self.models) < 1:

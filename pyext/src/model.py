@@ -118,7 +118,8 @@ class ResidueGridModel(object):
         for n in range(self.length):
             pf_ranges = [pf[n] for pf in observable_pfs]
             #print("II", pf_ranges, max([pf[1] for pf in pf_ranges]), min([pf[0] for pf in pf_ranges]), self.grid_size)
-            pf_grid = numpy.linspace(min([pf[1] for pf in pf_ranges]), max([pf[0] for pf in pf_ranges]), self.grid_size ) 
+            #pf_grid = numpy.linspace(min([pf[1] for pf in pf_ranges]), max([pf[0] for pf in pf_ranges]), self.grid_size ) 
+            pf_grid = numpy.linspace( 0, 10, self.grid_size )
             pf_grids.append(pf_grid)
 
         self.pf_grids = pf_grids
