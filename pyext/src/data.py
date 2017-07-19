@@ -380,8 +380,8 @@ class Peptide(object):
             tp = Timepoint(time, sigma)
             self.timepoints.append(tp)
             return tp
-        #else:
-        #    print("Timepoint " + str(time) +" already in peptide "+self.sequence)
+        else:
+            return self.get_timepoint_by_time(time)
 
     def get_timepoint_by_time(self, time):
         # Returns the timepoint where timepoint.time matches exactly.  Otherwise returns None
