@@ -254,12 +254,12 @@ class Dataset(object):
         f.write("# saturation " + str(self.conditions.saturation) +"\n")
         f.write("\n")
         f.write("Peptides\n")
-        f.write(">Sequence, start_residue, Charge, RT, recovery\n")
+        f.write(">Sequence, start_residue, Charge, RT\n")
         for pep in self.get_peptides():
-            f.write(">" + pep.sequence +"," + str(pep.start_residue) +"," + str(pep.charge) +"," + str(pep.retention_time) +"," + str(pep.recovery) +"\n")
+            f.write(">" + pep.sequence +"," + str(pep.start_residue) +"," + str(pep.charge_state) +"," + str(pep.retention_time) +"\n")
             for tp in pep.get_timepoints():
                 for rep in tp.get_replicates():
-                    f.write(str(tp.time) + "," + str(rep.deut) + "," + str(rep.replicate_id) + "," + str(replicate.confidence) +"\n")
+                    f.write(str(tp.time) + "," + str(rep.deut) + "," + str(rep.experiment_id) + "," + str(rep.score) +"\n")
 
         f.close()
 
