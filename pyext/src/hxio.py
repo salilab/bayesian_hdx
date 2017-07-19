@@ -545,7 +545,13 @@ class Output(object):
             for res in resis:
                 sec_string+= str(res)+" "
             sec_string += "| "
+
+        cov_string = "@C "
+        for s in state.get_coverage():
+            cov_string+=str(s)+ " "
+
         f.write(sec_string +"\n")
+        f.write(cov_string +"\n")
         f.write("\n")
         f.write("grid_size : " + str(state.output_model.grid_size) + "\n")
         # Protection Factor Grids
