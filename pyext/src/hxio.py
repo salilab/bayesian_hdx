@@ -187,7 +187,7 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             # Now create the different dataset
             datasets=[]
             for s in states:
-                d = Dataset(name=s, sequence=sequence, conditions=conditions, input_file=infile)
+                d = Dataset(name=s, sequence=sequence, conditions=conditions, error_estimate=sigma0, input_file=infile)
                 datasets.append(d)
 
         #############################################################
@@ -534,7 +534,7 @@ class Output(object):
         f.write("### Datasets used | error_estimate\n")
         for d in state.data:
             if d.raw_data_file is not None:
-                f.write("# " + d.raw_data_file + " | " + str(d.sigma0) + "\n")
+                f.write("# " +"./datasets/"+ state.macromolecule.name +"_" + state.name + "_" + d.name + ".hxd" + " | "+ d.raw_data_file + " | " + str(d.sigma0) + "\n")
         f.write("\n")
         # Sectors
         f.write("@@@ Sector Residues and Coverage\n")
@@ -560,6 +560,16 @@ class Output(object):
         f.write("\n")
 
         f.close()
+
+    def write_datasets(self):
+        outdir = self.output_directory + "/datasets/"
+        os.mkdir(outdir)
+        for mmols in self.sys.get_macromolecules():
+            for state in mmols.get_states():
+                for dataset in state.get_datasets():
+                    outfile = outdir + mmols.name +"_" + state.name + "_" + dataset.name + ".hxd"
+                    dataset.write_to_file(outfile)
+
 
     def write_model(self, state, model, score, acceptance, sigmas=True):
 
