@@ -116,8 +116,50 @@ def import_HXcolumns(infile, sequence, name=None, percentD=False, conditions=Non
 
     return dataset
 
+def import_json(infile, name=""):
+    # Imports a json written by Dataset.write_to_file()
+    import json
+
+    with open(infile) as json_data:
+        d = json.load(json_data)
+
+    cond_dict = d["conditions"]
+    conditions = Conditions()
+    for a in cond_dict:
+        conditions.a = cond_dict[a]
+
+    dataset = Dataset(d["name"], conditions, d["sequence"],
+        input_file = d["raw_data_file"],
+        error_estimate = d["error_estimate"],
+        offset = d["offset"],
+        number_fast_exchanging_amides = d["num_fast_exchanging_amides"],
+        percent_deuterium = d["percent_deuterium"])
+
+    pep_dict = d['peptides']
+
+    for pep in pep_dict:
+        p = pep_dict[str(pep)]
+        peptide = dataset.create_peptide(p["sequence"], p["start_residue"], 
+                            peptide_id=pep, 
+                            charge_state=p["charge_state"], 
+                            retention_time=p["retention_time"],
+                            sigma=p["sigma"])
+        tp_dict = p["timepoints"]
+        for tp in tp_dict:
+            timepoint = peptide.add_timepoint(tp_dict[str(tp)]["time"], tp_dict[str(tp)]["sigma"])
+            reps = tp_dict[str(tp)]["replicates"]
+            for rep in reps:
+                timepoint.add_replicate(reps[str(rep)]["deut"], experiment_id=reps[str(rep)]["experiment_id"], 
+                                score=reps[str(rep)]["reliability"], rt=reps[str(rep)]["rt"])
+
+    return dataset
 
 
+
+
+
+def get_peptide_information(line):
+    pass
 
 
 def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
@@ -187,7 +229,7 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             # Now create the different dataset
             datasets=[]
             for s in states:
-                d = Dataset(name=s, sequence=sequence, conditions=conditions, error_estimate=sigma0, input_file=infile)
+                d = Dataset(name=s, sequence=sequence, conditions=conditions, error_estimate=sigma0, input_file=infile, percent_deuterium=True)
                 datasets.append(d)
 
         #############################################################
@@ -548,7 +590,7 @@ class Output(object):
 
         cov_string = "@C "
         for s in state.get_coverage():
-            cov_string+=str(s)+ " "
+            cov_string+=str(int(s))+ " "
 
         f.write(sec_string +"\n")
         f.write(cov_string +"\n")
@@ -597,6 +639,7 @@ class Output(object):
         f.write(outstring + "\n")
 
         f.close()
+
 
     def get_output_file(self, state):
         return self.output_directory+"/models_scores_sigmas-" + state.name +".dat"

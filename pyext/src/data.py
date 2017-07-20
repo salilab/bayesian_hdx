@@ -39,7 +39,8 @@ class Dataset(object):
     Intrinsic rates are calculated and stored here
     """   
 
-    def __init__(self, name, conditions, sequence, input_file=None, error_estimate=5.0, offset=1, number_fast_exchanging_amides=2):
+    def __init__(self, name, conditions, sequence, input_file=None, error_estimate=5.0, 
+                    offset=1, number_fast_exchanging_amides=2, percent_deuterium=False):
         self.raw_data_file = input_file
         self.conditions = conditions
         self.sequence = sequence
@@ -52,6 +53,7 @@ class Dataset(object):
         self.name = name
         self.sigma0 = error_estimate
         self.peptide_dict = {}
+        self.percent_deuterium = percent_deuterium
         self.times = set([tp.time for tp in self.get_all_timepoints()])
 
     def collect_times(self):
@@ -200,7 +202,7 @@ class Dataset(object):
     def get_all_times(self):
         return self.times
 
-    def create_peptide(self, sequence, start_residue, peptide_id=None, sigma=1.0, charge_state=None, retention_time=None):
+    def create_peptide(self, sequence, start_residue, peptide_id=None, sigma=5.0, charge_state=None, retention_time=None):
         '''
         Manually creates a peptide object
         adds it to the end of Dataset peptide list
@@ -224,44 +226,53 @@ class Dataset(object):
     def get_state(self):
         return self.state
 
-    def write_to_file(self, output_file):
-        ''' 
-        writes information from dataset 
-        into an output file.
+    def write_to_file(self, outfile):
+        # Converts the dataset into nested dictionaries:
+        import json
+        dataset = {}
 
-        Header contains things from Conditions
-        # datafile
-        # temperature
-        # pH
-        # date 
-        # saturation
-        # ...
+        dataset["name"] = self.name
+        dataset["conditions"] = self.conditions.__dict__
+        dataset["sequence"] = self.sequence
+        dataset["error_estimate"] = self.sigma_estimate
+        dataset["raw_data_file"] = self.raw_data_file
+        dataset["offset"] = self.offset
+        dataset["num_fast_exchanging_amides"] = self.nfastamides
+        dataset["percent_deuterium"] = self.percent_deuterium
 
-        Then for each replicate:
-        > Sequence, Start_residue, Charge, RT, recovery
-        time, deut, replicate, score
-        time, deut, replicate, score
-
-        '''
-
-        f = open(output_file, "w")
-
-        f.write("# System ")
-        f.write("# sequence " + self.get_state().sequence + "\n")
-        f.write("# datafile " + self.raw_data_file + "\n")
-        f.write("# temperature " + str(self.conditions.temperature) + "\n")
-        f.write("# pH " + str(self.conditions.pH) +"\n")
-        f.write("# saturation " + str(self.conditions.saturation) +"\n")
-        f.write("\n")
-        f.write("Peptides\n")
-        f.write(">Sequence, start_residue, Charge, RT\n")
+        peptides = {}
         for pep in self.get_peptides():
-            f.write(">" + pep.sequence +"," + str(pep.start_residue) +"," + str(pep.charge_state) +"," + str(pep.retention_time) +"\n")
+            pep_dict = {}
+            print(pep.sequence)
+            pep_dict["sequence"] = pep.sequence
+            pep_dict["start_residue"] = pep.start_residue
+            pep_dict["charge_state"] = pep.charge_state
+            pep_dict["retention_time"] = pep.retention_time
+            pep_dict["sigma"] = pep.sigma
+            timepoints = {}
             for tp in pep.get_timepoints():
+                replicates = {}
+                tp_dict = {}
                 for rep in tp.get_replicates():
-                    f.write(str(tp.time) + "," + str(rep.deut) + "," + str(rep.experiment_id) + "," + str(rep.score) +"\n")
+                    rep_dict = rep.__dict__
+                    #rep_dict["deuteration"] = rep.deut
+                    #rep_dict["reliability"] = rep.reliability
+                    #rep_dict["retention_time"] = rep.rt
+                    replicates[rep.experiment_id] = rep_dict
+                tp_dict["time"] = tp.time
+                tp_dict["sigma"] = tp.sigma
+                tp_dict["replicates"] = replicates
+                timepoints[tp.time] = tp_dict
 
-        f.close()
+            pep_dict["timepoints"] = timepoints
+            peptides[pep.get_id()] = pep_dict
+
+        dataset["peptides"] = peptides
+
+        with open(outfile,"w") as f:
+            json.dump(dataset,f)
+
+        return dataset
 
     def get_score(self):
         # loop over all peptides and timepoints and sum up the scores.
@@ -298,7 +309,7 @@ class Peptide(object):
         @param sigma - an error 
 
     """
-    def __init__(self, dataset, sequence, start_residue, peptide_id, sigma=1.0, charge_state=None, retention_time=None, pH=7.0, temp=283):
+    def __init__(self, dataset, sequence, start_residue, peptide_id, charge_state=None, sigma=5.0, retention_time=None):
         self.set_dataset(dataset)
         self.id = peptide_id
         self.sequence = sequence
@@ -481,7 +492,7 @@ class Timepoint(object):
         return len(self.replicates)
 
     def add_replicate(self, deut, experiment_id=None, score=1.0, rt=None):
-        self.replicates.append(Replicate(deut, experiment_id=experiment_id, score=score, rt=rt))
+        self.replicates.append(Replicate(deut, experiment_id=experiment_id, reliability=score, rt=rt))
 
     def get_avg_sd(self):
         if len(self.replicates) < 1:
@@ -566,10 +577,10 @@ class Replicate(object):
         @param rid - the deuterium concentration
         @param recovery - the 2D recovery estimate
     """
-    def __init__(self, deut, experiment_id, score=1.0, rt=None):
+    def __init__(self, deut, experiment_id, reliability=1.0, rt=None):
         self.deut = deut
         self.experiment_id = experiment_id
-        self.score = score
+        self.reliability = reliability
         self.rt = rt
 
     def set_score(self, score):
