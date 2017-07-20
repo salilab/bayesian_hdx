@@ -15,6 +15,23 @@ from pylab import *
 from matplotlib import *
 
 
+class Convergence(object):
+    '''
+    Given two ParseOutputFile classes, 
+    allow testing of various convergence and clustering metrics
+    '''
+    def __init__(self, parse_output1, parse_output2):
+        self.sample1 = parse_output1
+        self.sample2 = parse_output2
+
+    def calculate_number_best_models(self):
+        # Calcualtes the number of best scoring models needed
+        # to recreate each sample
+        pass
+
+
+
+
 class ParseOutputFile(object):
     def __init__(self, output_file, state):
         self.output_file = output_file
@@ -70,6 +87,16 @@ class ParseOutputFile(object):
             elif line.split(":")[0].strip() == "Molecule_Name":
                 self.molecule_name = line.split(":")[1].strip()
 
+    def get_datasets():
+        if len(self.datasets) == 0:
+            self.generate_datasets()
+        return datasets
+
+    def generate_datasets():
+        for f in self.datafiles:
+            datasets.append(hxio.import_json(f))
+
+
     def get_best_scoring_models(self, N, sigmas=False, return_pf=False):
         ''' Get the N best scoring models from the output file
         Returns a list of tuples of best_scoring_models 
@@ -122,6 +149,21 @@ class ParseOutputFile(object):
             output.append(pf_model)
 
         return output
+
+class OutputAnalysis(object):
+    '''
+    Class that analyzes an output file and
+    produces standard graphs
+    '''
+    def __init__(self, output):
+        self.output = output
+
+
+    def parse_output_files(self):
+        pass
+
+
+
 
 
 
