@@ -193,8 +193,8 @@ class MultiExponentialModel(object):
         '''
         frags = deepcopy(self.frags)
 
-        exp_seq=[0]*len(self.exp_seq)#, self.first_tp, self.last_tp)
-        exp_grid=self.calc_exp_grid(size_enum)
+        exp_seq=[0]*len(self.exp_seq)
+        exp_grid=self.calc_exp_grid(size_enum, self.first_tp, self.last_tp)
         print("\n##### Initial Guess: Enumerate #####")
         print("# Enumerating all fragments with gridsize of", size_enum)
         print("# State:", self.state.state_name, "\n")
