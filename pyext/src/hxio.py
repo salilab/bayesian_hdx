@@ -236,7 +236,6 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
         #  This is replicate data. 
         #############################################################
         if len(line.split(',')) >= 1 and column_headers != None and line.split(',')[column_headers.index("percentd_replicate")]!="NA":
-
             # First see if it was discarded:
             discarded = line.split(',')[column_headers.index("discarded_replicate")]
             if discarded==True or discarded=="T" or discarded == "true" or discarded == "True" or discarded == "TRUE":
@@ -250,7 +249,7 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             start_residue = int(fields[column_headers.index("start")])
             state_name = fields[column_headers.index("sample")].replace(" ","_")
             replicate_id = int(fields[column_headers.index("replicate")])
-            #print("XX", line.split(',')[column_headers.index("score_replicate")], replicate_id, peptide_sequence, column_headers.index("score_replicate"))
+
             try:
                 replicate_score = float(fields[column_headers.index("score_replicate")])
             except ValueError:
@@ -267,10 +266,11 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             for data in datasets:
                 if state_name == data.name:
                     # If the peptide is not there...create the peptide
-                    (is_pep_in, new_peptide) = data.is_this_peptide_in_dataset(peptide_sequence, start_residue, charge_state)
+                    is_pep_in, new_peptide = data.is_this_peptide_in_dataset(peptide_sequence, start_residue, charge_state)
+                    
                     if new_peptide is None:
                         new_peptide = data.create_peptide(sequence=peptide_sequence, start_residue=start_residue, charge_state=charge_state)
-
+            print("XX", state_name, replicate_id, peptide_sequence, charge_state, len(data.get_peptides()), is_pep_in)            
             #print("Replicate", new_peptide)
             # Now, once the we know the peptide is there (or has just been created), add the data
             if new_peptide is not None:
