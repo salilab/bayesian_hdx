@@ -191,6 +191,11 @@ class Dataset(object):
                 new_peptide.set_dataset(self)
                 self.peptide_dict[new_peptide.get_id()] = new_peptide
                 return self.peptides[-1]
+        else:
+            self.peptides.append(new_peptide)
+            new_peptide.set_dataset(self)
+            self.peptide_dict[new_peptide.get_id()] = new_peptide
+            return self.peptides[-1]
 
     def get_all_timepoints(self):
         tps = []
@@ -211,7 +216,10 @@ class Dataset(object):
         '''
         if peptide_id is None:
             peptide_id = str(len(self.peptides))
-        new_peptide = Peptide(self, sequence, start_residue, peptide_id, sigma, charge_state, retention_time)
+        new_peptide = Peptide(self, sequence, start_residue, peptide_id, 
+                        sigma=sigma, 
+                        charge_state=charge_state, 
+                        retention_time=retention_time)
         return self.add_peptide(new_peptide)
 
     def get_sequence(self):
