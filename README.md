@@ -47,9 +47,9 @@ To get a rough estimate for how long your run will take, edit the modeling scrip
 ## Output
 Data output is delivered in into the `output` (or user-defined) directory. 
 
-* HDX Plots - Plots the ensemble of calculated HDX protection factors at each residue for one or more states.
+* HDX Plots - Plots the ensemble of calculated HDX protection factors at each residue for one or more states. Residue number is on the X-axis (top) 
 
-[[https://github.com/salilab/bayesian_hdx/blob/master/img/violins.png ]]
+![Violin plot](img/violins.png)
 
 * Fragment Chi Plots - Plots for each state showing the fragment overlap and colored by the fit of that fragment data to the model.
 
