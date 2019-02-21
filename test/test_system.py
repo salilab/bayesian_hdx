@@ -2,14 +2,19 @@
 Test features of the HDX system representation
 '''
 from __future__ import print_function
+import utils
+import os
+import unittest
+import numpy
+
+TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+utils.set_search_paths(TOPDIR)
+
 import system
 import data
 import tools
 import hxio
 import model
-import unittest
-import os
-import numpy
 
 
 def initialize_system():
