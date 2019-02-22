@@ -2,17 +2,22 @@
 Test the input of various file types
 '''
 from __future__ import print_function
-import hxio
-import data
+import utils
 import unittest
 import os
 
-input_path = os.path.dirname(os.path.realpath(__file__))+"/input/"
+TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+utils.set_search_paths(TOPDIR)
+
+import hxio
+import data
+
+input_path = os.path.join(TOPDIR, "test", "input")
 
 class TestHelperFunctions(unittest.TestCase):
 
     def test_read_fasta(self):
-        infile = input_path + "test.fasta"
+        infile = os.path.join(input_path, "test.fasta")
         seq = ("TEST_PROTEIN1", "ANIMAGINARYPEPTIDE")
 
 
@@ -24,7 +29,7 @@ class TestHelperFunctions(unittest.TestCase):
         self.assertEqual(s, seq[1])
 
 
-        in2file = input_path + "test4.fasta"
+        in2file = os.path.join(input_path, "test4.fasta")
 
         i = hxio.read_fasta(in2file)
 
@@ -43,14 +48,14 @@ class TestHelperFunctions(unittest.TestCase):
 class TestImportFiles(unittest.TestCase):
 
     def test_import_workbench(self):
-        infile = input_path + "Workbench_VDR_VD3_01.csv"
+        infile = os.path.join(input_path, "Workbench_VDR_VD3_01.csv")
         datasets = hxio.import_HDXWorkbench(infile)
         self.assertEqual(len(datasets), 2)
 
     def test_import_columns(self):
 
-        infile = input_path + "HXColumns_test_small.csv"
-        fastafile = input_path + "test.fasta"
+        infile = os.path.join(input_path, "HXColumns_test_small.csv")
+        fastafile = os.path.join(input_path, "test.fasta")
 
         sequence = hxio.read_fasta(fastafile).next()[1]
         #print("JDHS", sequence.next())

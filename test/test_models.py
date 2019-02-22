@@ -2,12 +2,18 @@
 Test the input of various file types
 '''
 from __future__ import print_function
+import utils
+import unittest
+import numpy
+import os
+from copy import deepcopy
+
+TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+utils.set_search_paths(TOPDIR)
+
 import model
 import system
-import unittest
 import data
-import numpy
-from copy import deepcopy
 #import tools
 
 
