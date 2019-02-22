@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/salilab/bayesian_hdx.svg?branch=master)](https://travis-ci.org/salilab/bayesian_hdx)
+[![codecov](https://codecov.io/gh/salilab/bayesian_hdx/branch/master/graph/badge.svg)](https://codecov.io/gh/salilab/bayesian_hdx)
+
 # bayesian_hdx
 Bayesian Analysis of HDX-MS Data. Calculate the magnitude and significance of a perturbation in HDX at quasi-residue resolution.
 
