@@ -478,7 +478,8 @@ def exp_model_sector_MC_step(state,exp_model,frags,temp,sigma,error_model="trunc
                 exp_model.exp_seq[resnum] = delta
                 new_sector_score = exp_model.calculate_bayesian_score(s.fragments,sigma,error_model)
                 randn = numpy.random.random_sample()
-                if new_sector_score-sector_score < 0.0:
+                delscore = new_sector_score - sector_score
+		if delscore < 0.0:
                     # If change is negative, accept the move
                     sector_score = new_sector_score
                     #exp_model.exp_seq=deepcopy(seq0)
