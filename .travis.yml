@@ -7,7 +7,7 @@ python:
 cache:
   pip: true
 install:
-  - pip install coverage matplotlib
+  - pip install coverage matplotlib scipy
 script:
   - nosetests --with-coverage --cover-branches
 after_success:
