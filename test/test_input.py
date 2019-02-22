@@ -23,7 +23,7 @@ class TestHelperFunctions(unittest.TestCase):
 
         i = hxio.read_fasta(infile)
 
-        (h, s) = i.next()
+        (h, s) = next(i)
 
         self.assertEqual(h, seq[0])
         self.assertEqual(s, seq[1])
@@ -40,7 +40,7 @@ class TestHelperFunctions(unittest.TestCase):
 
 
         for s in range(len(seqs)):
-            tup = i.next()
+            tup = next(i)
             self.assertEqual(tup, seqs[s])
 
 
@@ -57,7 +57,7 @@ class TestImportFiles(unittest.TestCase):
         infile = os.path.join(input_path, "HXColumns_test_small.csv")
         fastafile = os.path.join(input_path, "test.fasta")
 
-        sequence = hxio.read_fasta(fastafile).next()[1]
+        sequence = next(hxio.read_fasta(fastafile))[1]
         #print("JDHS", sequence.next())
         dataset = hxio.import_HXcolumns(infile, sequence)
 

@@ -39,7 +39,7 @@ class System(object):
         """
 
         # Check that sequence is a string
-        if not isinstance(sequence, basestring):
+        if not isinstance(sequence, str):
             raise Exception("Please input a string or filepath as the sequence input")
 
         # if there is a period, then we will assume that it is a filepath
