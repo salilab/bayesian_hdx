@@ -54,7 +54,7 @@ mol = sys.add_macromolecule(inseq, "VDR", initialize_apo=False)
 datasets = hxio.import_HDXWorkbench(workbench_file,       # Workbench input file
                           macromolecule=mol,
                           sequence=None,      # FASTA sequence string
-                          sigma0=sigma0) # The initial estimate for experimental SD in % deuterium untis.
+                          error_estimate=sigma0) # The initial estimate for experimental SD in % deuterium untis.
 sigs = []
 for d in datasets:
   sigs+= d.get_all_tp_avg_sigmas()
