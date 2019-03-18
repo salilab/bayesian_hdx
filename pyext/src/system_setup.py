@@ -227,6 +227,8 @@ class HDXState(object):
                 self.sectors.append(Sector(start_res, end_res, fraglist_m1, self.seq))
                 sector_number+=1
                 start_res=n
+            elif n==len(self.seq):
+                self.sectors.append(Sector(start_res, n-1, fraglist_m1, self.seq))
             #print("XXX", n, self.seq[n], sector_number, len(used_frags), [(f.seq, f.start_res, f.end_res) for f in fraglist])#print f.seq, f.start_res, f.end_res, n, self.seq[n]
             fraglist_m1=fraglist
 
