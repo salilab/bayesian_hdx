@@ -187,10 +187,10 @@ def plot_fragment_chi_values(state, sig="model", outfile=None, show_plot=False, 
         os.makedirs(outdir)
 
     frags=state.frags
-    maxchi=0
-    for f in frags:
-        if f.get_chi_value(sig) > maxchi:
-            maxchi = f.chi
+    maxchi=50
+    #for f in frags:
+    #    if f.get_chi_value(sig) > maxchi:
+    #        maxchi = f.chi
 
     nres=len(state.seq)
     fig, ax=plt.subplots(figsize=(12,6))
