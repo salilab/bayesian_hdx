@@ -1,4 +1,5 @@
-PYTHONPATH="/Users/saltzberg/Dropbox/projects/salilab/bayesian_hdx/pyext/src:$PYTHONPATH"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+PYTHONPATH="$DIR/pyext/src:$PYTHONPATH"
 export PYTHONPATH
 
 exec ${precommand} "$@"
