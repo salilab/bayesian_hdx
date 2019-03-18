@@ -421,13 +421,16 @@ class MultiExponentialModel(object):
         sector_averaged_protection_values=[0.]*len(seq)
         for s in sectors:
             sum_exp=0
-            for n in range(s.start_res, s.end_res+1):
-                #print n, seq[n], sum_exp, self.exp_seq[n], self.exp_grid[int(seq[n])-1]
-                sum_exp=sum_exp+self.exp_grid[int(seq[n])-1]
-            frac_exp=sum_exp/s.num_amides
-            for n in range(s.start_res, s.end_res+1):
-                if self.seq[n]!='p' and self.seq[n]!='P':
-                    sector_averaged_protection_values[n]=frac_exp
+            if s.num_amides != 0:
+                for n in range(s.start_res, s.end_res+1):
+                    #print n, seq[n], sum_exp, self.exp_seq[n], self.exp_grid[int(seq[n])-1]
+                    sum_exp=sum_exp+self.exp_grid[int(seq[n])-1]
+                frac_exp=sum_exp/s.num_amides
+                for n in range(s.start_res, s.end_res+1):
+                    if self.seq[n]!='p' and self.seq[n]!='P':
+                        sector_averaged_protection_values[n]=frac_exp
+            else:
+                sector_averaged_protection_values[n]=0
         return sector_averaged_protection_values
 
     def get_indiv_sector_averaged_protection_values(self,seq, sectors):
