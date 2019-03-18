@@ -159,7 +159,7 @@ def import_json(infile, name=""):
     return dataset
 
 
-def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
+def import_HDXWorkbench(infile, macromolecule=None, name="Data", sequence=None, error_estimate=5.0, n_fastamides=2, offset=0):
     '''
     HDXWorbench files are different because they contain information from two experiments.
     They recieve a macromolecule rather than a single state and will create
@@ -226,7 +226,7 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             # Now create the different dataset
             datasets=[]
             for s in states:
-                d = Dataset(name=s, sequence=sequence, conditions=conditions, error_estimate=sigma0, input_file=infile, percent_deuterium=True)
+                d = Dataset(name=s, sequence=sequence, conditions=conditions, error_estimate=error_estimate, input_file=infile, percent_deuterium=True)
                 datasets.append(d)
 
         #############################################################
