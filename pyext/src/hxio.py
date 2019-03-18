@@ -40,7 +40,7 @@ def read_fasta(fasta_file):
     for header in entries:
         # drop the ">" and grab only the first word.
         # Allow for dashes, underscore and colons (PDB)
-        fields = re.findall(r'[A-Za-z0-9-_:]+', header.next())
+        fields = re.findall(r'[A-Za-z0-9-_:]+', next(header))
 
         # Some fasta files have the header form "">gi|fasta_id|gb"
         if fields[0] == 'gi' and fields[2]=='gb':
@@ -49,7 +49,7 @@ def read_fasta(fasta_file):
             header = fields[0]
 
         # join all subsequent sequence lines into one string.
-        seq = "".join(s.strip() for s in entries.next())
+        seq = "".join(s.strip() for s in next(entries))
         yield header, seq
 
 
