@@ -16,6 +16,8 @@ class HDXWorkbench(object):
         self.theta=0.1
         self.file=infile
 
+        state_frag=None
+
         f=open(infile,"r")
         line=f.readline()
 
