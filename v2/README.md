@@ -1,5 +1,5 @@
-# bayesian_hdx
-Bayesian Analysis of HDX-MS Data. Calculate the magnitude and significance of a perturbation in HDX at quasi-residue resolution.
+# bayesian_hdx Version 2
+Calcualting the distribution of potential protection factors at each residue from MS-HDX deuterium incorporation data.
 
 ### Requirements
 * python 2.7 or 3.X. 
@@ -11,19 +11,13 @@ Bayesian Analysis of HDX-MS Data. Calculate the magnitude and significance of a 
 ## Usage
 
 #### As python script
-The code runs as a python script that can be modified by the user.  Look at the modeling.py script in `examples/simulated_system/` for further explanation.  Simply run the script as: 
+The code runs as a python script that can be modified by the user.  Look at the modeling_new.py script in `examples/simulated_system/` for further explanation.  Simply run the script as: 
 ```
-python modeling.py
+./path/to/v2/setup.sh python modeling_new.py
 ```
-#### From the command line with a workbech file
-Alternatively, if you have an HDX Workbench file, you can input it directly to the `workbench_executable.py` script with the following format:
-```
-python workbench_executable.py "path/to/workbench/file.csv" "output_directory"
-```
-Additional command line arguments can be added. Run `python workbench_executable.py -h` to see all options.  Ensure that the ./pyext/src/ folder is in your PYTHONPATH or add it at invocation with the flag `--path "path/to/code/pyext/src"`.
 
 ## Input Data
-HDX-MS data can read directly from the output .csv file from HDXWorkbench.
+HDX-MS data can read directly from the output .csv file from HDXWorkbench and MassSpec Studio
 
 Data can also be read from a .csv file with the following format:
 ```
@@ -45,12 +39,13 @@ To get a rough estimate for how long your run will take, edit the modeling scrip
 
 
 ## Output
-Data output is delivered in into the `output` (or user-defined) directory. 
+Data output is delivered in into a user-defined output directory, default = `output`
 
-* HDX Plots - Plots the ensemble of calculated HDX protection factors at each residue for one or more states.
 
-[[https://github.com/salilab/bayesian_hdx/blob/master/img/violins.png ]]
+## Analysis
+A number of plots are used to view HDX data. 
+* HDX Plots - Plots the ensemble of HDX protection factors from the best scoring models at each residue for one or more states.
 
-* Fragment Chi Plots - Plots for each state showing the fragment overlap and colored by the fit of that fragment data to the model.
+* Fragment Chi Plots - Plots for each state showing the fragment overlap and colored by the fit of that fragment data to the model. Chi values over 20 are suspect.
 
-* Fragment fit-to-data - Plots of time vs. %D incorporation showing the fit of the model to the data.
+* Fragment fit-to-data - Plots of time vs. %D incorporation showing the fit of the model to the data. Poor fits can indicate insufficient sampling and/or inconsistent data. 
