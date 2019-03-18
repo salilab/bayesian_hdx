@@ -223,10 +223,12 @@ class MCSampler(object):
 
     def run_benchmark(self):
         import time
+        print("Starting Benchmark")
         '''Run 100 MC steps and report the time to run 1000 steps
         '''       
         times = []
         for i in range(10):
+	    print(i)
             start = time.time()
             self.run(NSTEPS=10)
             end = time.time()
@@ -251,7 +253,9 @@ class MCSampler(object):
             acceptance_total=1.0
             init_temp = temp
             for i in range(nsteps):
+                #print(i,)
                 score, model_avg, acceptance = self.run_one_step(temp)
+                #print(score, model_avg, acceptance)
                 acceptance_total += acceptance
 
             acceptance_ratio = acceptance_total/nsteps
@@ -284,22 +288,25 @@ class MCSampler(object):
         return temp
 
 
-    def run(self, NSTEPS=100, init_temp=10, write=False, write_all=False, acceptance_range=None):
-
+    def run(self, NSTEPS=100, init_temp=10, write=False, write_all=False, acceptance_range=None, find_temperature=True):
+        print("Starting run")
         if acceptance_range is None:
             acceptance_range = self.acceptance_range
-        acceptance_total = 1.0
+        acceptance_total = 1.0       
         init_score = 0
         output_files = []
         output = self.states[0].macromolecule.system.get_output()
         for s in self.states:
             state_score = s.calculate_score(s.output_model.model)
             init_score += state_score
+            print(s, state_score)
             output_files.append(open(output.get_output_file(s), "a"))
             for d in s.data:
                 d.collect_times()
-
-        temperature = self.get_acceptable_temperature(init_temp=init_temp, acceptance_range=acceptance_range)
+        if find_temperature:
+            temperature = self.get_acceptable_temperature(init_temp=init_temp, acceptance_range=acceptance_range)
+        else:
+            temperature = init_temp
         print("Simulation temperature = ", temperature)
         print("Step, score, model_avg_protection_factor, mc_acceptance_ratio")
         for i in range(NSTEPS):
@@ -565,7 +572,7 @@ def do_mc_sampling(model, temp=1, sigma=5.0, error_model="gaussian", NSTEPS=100,
             for i in range(len(step_scores)):
                 #print(i, model.states[i].state_name)
                 string+=model.states[i].state_name + "_score= " + str(step_scores[i]) + " "
-            print(t, string)
+            #print(t, string)
 
     if save_results:
         state_num = 0
@@ -614,12 +621,14 @@ def exp_model_sector_MC_step(state,exp_model,frags,temp,sigma,error_model="trunc
                 #print ipick, "is a proline"
                 continue
             else:
-                delta=numpy.random.random_integers(0,len(exp_model.exp_grid)-1)
+                delta = numpy.random.random_integers(0,len(exp_model.exp_grid)-1)
                
                 exp_model.exp_seq[resnum] = delta
                 new_sector_score = exp_model.calculate_bayesian_score(s.fragments,sigma,error_model)
                 randn = numpy.random.random_sample()
-                if new_sector_score-sector_score < 0.0:
+                delscore = new_sector_score - sector_score
+
+                if delscore < 0.0:
                     # If change is negative, accept the move
                     sector_score = new_sector_score
                     #exp_model.exp_seq=deepcopy(seq0)
