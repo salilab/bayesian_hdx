@@ -2,16 +2,12 @@
    Classes to handle the HDX data hierarchy
 """
 from __future__ import print_function
-#import hdx_models
-#import analysis
 from scoring import GaussianNoiseModel
 import hxio
 import numpy
 import math
-import scipy
 import tools
 #from model import ResidueGridModel
-#import scipy.special
 from numpy import linalg
 import sys
 from copy import deepcopy

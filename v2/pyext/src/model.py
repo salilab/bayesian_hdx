@@ -4,15 +4,10 @@
    They contain the sampled parameters for each state.
 """
 from __future__ import print_function
-#import IMP
-#import IMP.hdx
 import system
-import analysis
-import hxio
 import sampling
 import numpy
 import scipy
-#import scipy.special
 from numpy import linalg
 import sys
 from copy import deepcopy

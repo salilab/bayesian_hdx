@@ -10,7 +10,6 @@ import numpy
 import numpy.random
 import scipy
 import math
-#import system
 
 AA_list = "ARNDCQEGHILKMFPSTWYV"
 

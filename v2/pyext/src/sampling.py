@@ -2,7 +2,6 @@
    Sampling functions for HDX models
 """
 from __future__ import print_function
-import hdx_models
 import scoring
 import numpy
 import numpy.random
@@ -12,7 +11,7 @@ import system
 from random import shuffle
 from numpy import linalg
 from copy import deepcopy
-import os.path
+import os
 from itertools import combinations_with_replacement
 from itertools import permutations
 
