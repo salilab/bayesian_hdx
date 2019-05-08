@@ -463,11 +463,10 @@ class MCSampler(object):
             acceptance_ratio += float(flips2)/int(max(math.ceil((self.pct_moves * len(resis))/100.), 1))
 
             #print("PROTFACT:", state.output_model.model[38:43])
-        model_avg = [numpy.average(state.output_model.model_protection_factors) for s in self.states]
+        model_avg = [numpy.average(s.output_model.model_protection_factors) for s in self.states]
         model_avg_str = ""
         for m in model_avg:
             model_avg_str+=str(m)+" "
-
         #print(total_score, model_avg_str, m_sq_change)
         return total_score, model_avg_str, acceptance_ratio/len(self.states)#, m_sq_change #acceptance_ratio/len(self.states)
 
