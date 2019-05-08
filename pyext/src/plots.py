@@ -571,10 +571,13 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
 
 def plot_residue_protection_factors(parse_output, rate_bins=None, 
                                     resrange=None, plot_prior=True, 
-                                    resnum_skip=10, num_best_models=100):
+                                    resnum_skip=10, num_best_models=100,
+                                    true_vals=None):
     # Input is a standard output model file and the rate bins
     # Should note the sectors as well, along with overlap.
-    # Outputs a plot with a sing
+
+    # true_vals is a list of residue numbers and protection factors.
+    # These will be sorted and plotted as a red line.
     import csv
 
     colors = ["red", "blue", "yellow", "green"]
@@ -710,6 +713,10 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
             #ax[n].spines['right'].set_visible(False)
             #ax[n].spines['bottom'].set_visible(False)
             #ax[n].spines['left'].set_visible(False)
+        if true_vals:
+            if nd in true_vals.keys:
+                print("TVal", nd, true_vals[nd])
+                ax[n].fill_between(-1,1,10**true_vals[nd], facecolor='red', alpha=0.7, lw=0)
 
     ax[0].set_ylabel("Log(Protection Factor)")
     ax[0].set_yticks(x[::ytick_rate])
