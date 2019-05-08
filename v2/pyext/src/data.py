@@ -40,9 +40,6 @@ class Dataset(object):
 
     Rates are calculated with respect to a maximum theoretical rate (self.max_rate)
     observable at these conditions.  These "protection_factors" 
-
-
-
     """   
 
     def __init__(self, name, conditions, sequence, input_file=None, error_estimate=5.0, 
@@ -314,7 +311,6 @@ class Dataset(object):
         self.score = score
         return score
 
-
     def set_sigma(self, sigma):
         self.sigma = sigma
         for pep in self.get_peptides():
@@ -331,6 +327,16 @@ class Dataset(object):
                     deut += deut_by_residue[r][tp.time]
                 #print("   ", pep.sequence, tp.time, deut)
                 tp.set_deuteration(deut * self.conditions.saturation)
+
+    def delete_peptide(self, sequence, start_res, charge_state):
+        # Remove a given peptide from this dataset
+        for p in range(len(self.get_peptides())):
+            if self.peptides[p].sequence == sequence and self.peptides[p].start_residue == start_res and self.peptides[p].charge_state==charge_state:
+                self.peptides.remove(self.peptides[p])
+                break
+            if p == len(self.get_peptides())-1:
+                raise Warning("Peptide", sequence, start_res, charge_state, "does not exist in this dataset")
+
 
 
 
