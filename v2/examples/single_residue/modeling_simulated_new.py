@@ -11,13 +11,13 @@ import cProfile
 
 
 ##### File/Directory Setup ######
-outputdir="./sim_output"
+outputdir="./sim_output_new"
 
 ####### Input Parameters #######
 offset=0        # offset between fragment start/end values and FASTA sequence
 sigma0=1        # Estimate 4or slope of experimental error (slope of sd vs. %D plot)
-num_exp_bins=11   # Number of bins
-annealing_steps=200
+num_exp_bins=5001   # Number of bins
+annealing_steps=20
 inseq="AAA"
 
 dat  = { 10   : [21.33928571428864, 15.702380952384537,  6.877976190478665],
@@ -61,9 +61,9 @@ output_model = model.ResidueGridModel(state, grid_size=num_exp_bins)
 state.set_output_model(output_model)
 sys.output.initialize_output_model_file(state, output_model.pf_grids)
 
-sampler = sampling.MCSampler(sys, sigma_sample_level="peptide")
+sampler = sampling.MCSampler(sys, sigma_sample_level=None)
 # First, run a short minimization step
-sampler.run(50, 0.0001)
+#sampler.run(50, 0.0001)
 
 for pep in dataset.get_peptides():
     for tp in pep.get_timepoints():
@@ -74,21 +74,35 @@ for pep in dataset.get_peptides():
         #except:
         #    pass
 
+print dataset.intrinsic
 
-#sampler.run(annealing_steps, 5)
+sampler.run(annealing_steps, 5)
 #sampler.residue_sampler.set_adjacency(True, 4)
 #sampler.run(annealing_steps, 4)
 #sampler.residue_sampler.set_adjacency(True, 3)
 #sampler.run(annealing_steps, 3)
 # This temperature tends to sit around 15% MC acceptance rate, which seems to be good.
-sampler.run(5000, 0.00001, write=True)
+sampler.run(500, 1, write=True)
+
+incorp = tools.calculate_incorporation(dataset.intrinsic, output_model.model_protection_factors, dataset.times)
 
 for pep in dataset.get_peptides():
     for tp in pep.get_timepoints():
-        #try:
         i = tp.get_replicates()[0]
         rep_score = -1*math.log(state.scoring_function.replicate_score(tp.get_model_deuteration()/pep.num_observable_amides*100, tp.get_replicates()[0].deut, tp.get_sigma()))
-        print pep.sequence, tp.time, tp.get_model_deuteration()/pep.num_observable_amides*100, tp.get_replicates()[0].deut, tp.get_score(), rep_score, "|", tp.get_sigma(), -1*math.log(state.scoring_function.experimental_sigma_prior(tp.get_sigma(), sigma0))
+        print pep.sequence, tp.time, tp.get_model_deuteration()/pep.num_observable_amides*100, tp.get_replicates()[0].deut, tp.get_score(), rep_score
+        for r in pep.get_observable_residue_numbers():
+             print "   ", r, incorp[r][tp.time]
         #except:
         #    pass
-print output_model.get_conversion_grid()
+
+
+print [(tp.time, tp.get_model_deuteration()) for tp in pep.get_timepoints()]
+sampler.run(5, 1)
+print [(tp.time, tp.get_model_deuteration()) for tp in pep.get_timepoints()]
+
+print output_model.model_protection_factors 
+print dataset.intrinsic
+print dataset.intrinsic - output_model.model_protection_factors 
+
+

@@ -17,9 +17,9 @@ workbench_file=datadir + "single_frag.csv"
 
 ####### Input Parameters #######
 offset=0        # offset between fragment start/end values and FASTA sequence
-sigma0=5.0        # Estimate for slope of experimental error (slope of sd vs. %D plot)
-num_exp_bins=10   # Number of bins
-annealing_steps=200
+sigma0=1.0        # Estimate for slope of experimental error (slope of sd vs. %D plot)
+num_exp_bins=101   # Number of bins
+annealing_steps=10
 inseq="YSMKSKNVVPLYDLL"
 
 sequence="AGSSHHHHHHSSGLVPRGSNSLALSLTADQMVSALLDAEPPILYSEYDPTRPFSEASMMGLLTNLADRELVHMINWAKRVPGFVDLTLHDQVHLLESAWLEILMIGLVWRSMEHPGKLLFAPNLLLDRNQGKSVEGMVEIFDMLLATSSRFRMMNLQGEEFVCLKSIILLNSGVYTFLSSTLKSLEEKDHIHRVLDKITDTLIHLMAKAGLTLQQQHQRLAQLLLILSHIRHMSNKGMEHLYSMKSKNVVPLYDLLLEMLDAHRLHAPTSRGGASVEETDQSHLATAGSTSSHSLQK"
@@ -53,7 +53,7 @@ mol = sys.add_macromolecule(sequence, "Single", initialize_apo=False)
 datasets = hxio.import_HDXWorkbench(workbench_file,       # Workbench input file
                           macromolecule=mol,
                           sequence=None,      # FASTA sequence string
-                          sigma0=sigma0)
+                          error_estimate=sigma0)
 
 sys.get_output().write_datasets()
 
@@ -61,12 +61,12 @@ for state in mol.get_states():
     output_model = model.ResidueGridModel(state, grid_size=num_exp_bins)
     state.set_output_model(output_model)
     sys.output.initialize_output_model_file(state, output_model.pf_grids)
+    state.initialize()
 
-sampler = sampling.MCSampler(sys, sigma_sample_level="timepoint")
+sampler = sampling.MCSampler(sys, sigma_sample_level=None)
 # First, run a short minimization step
-sampler.run(50, 0.0001)
-
-
+#sampler.run(50, 0.0001)
+'''
 for dataset in datasets:
   for pep in dataset.get_peptides():
     for tp in pep.get_timepoints():
@@ -76,13 +76,25 @@ for dataset in datasets:
         print pep.sequence, tp.time, tp.get_model_deuteration()/pep.num_observable_amides*100, tp.get_replicates()[0].deut, tp.get_score(), rep_score, "|", tp.get_sigma(), -1*math.log(state.scoring_function.experimental_sigma_prior(tp.get_sigma(), sigma0))
         #except:
         #    pass
+'''
 
-
-sampler.run(annealing_steps, 3)
+#sampler.run(annealing_steps, 5)
 #sampler.residue_sampler.set_adjacency(True, 4)
-sampler.run(annealing_steps, 2)
+#sampler.run(annealing_steps, 3)
 #sampler.residue_sampler.set_adjacency(True, 3)
-sampler.run(annealing_steps, 0.6)
+#sampler.run(annealing_steps, 2)
 # This temperature tends to sit around 15% MC acceptance rate, which seems to be good.
-sampler.run(2000, 0.6, write=True)
+sampler.run(10, 500, write=True)
+sampler.run(10, 50, write=True)
+sampler.run(100, 1, write=True)
 
+
+
+for pep in dataset.get_peptides():
+    for tp in pep.get_timepoints():
+        #try:
+        i = tp.get_replicates()[0]
+        rep_score = -1*math.log(state.scoring_function.replicate_score(tp.get_model_deuteration()/pep.num_observable_amides*100, tp.get_replicates()[0].deut, tp.get_sigma()))
+        print pep.sequence, tp.time, tp.get_model_deuteration()/pep.num_observable_amides*100, tp.get_replicates()[0].deut, tp.get_score(), rep_score, "|", tp.get_sigma(), -1*math.log(state.scoring_function.experimental_sigma_prior(tp.get_sigma(), sigma0))
+        #except:
+        #    pass
