@@ -23,7 +23,7 @@ def metropolis_criteria(old_score, new_score, temp, proposal_ratio=0.4):
         return True
     rand_num = numpy.random.rand()
     boltzmann_prob = numpy.exp(-1*(new_score - old_score)/temp)
-    #print("MCMC", boltzmann_prob, rand_num, old_score, new_score)
+    #print("  MCMC", boltzmann_prob, rand_num, old_score, new_score)
     if boltzmann_prob * proposal_ratio > rand_num:
         # Upward step taken
         return True
@@ -76,7 +76,7 @@ class SampledInt(object):
             while new_index < 0 or new_index >= len(self.range):
                 sign = numpy.random.randint(0,2) * 2 - 1
                 magnitude = numpy.random.randint(1, self.adjacency+1)
-                new_index = int(old_index + magnitude * sign)
+                new_index = int(self.old_index + magnitude * sign)
 
             # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             # Instead of this, change the value in the residue object
@@ -141,7 +141,7 @@ class EnumerationSampler(object):
         
         m = self.states[0].output_model 
 
-    def run(self, write=False):
+    def uun(self, write=False):
         """Enumerates and scores all possible models for the given an exp_grid
         returns the top num_models scoring exp grids"""
         output = self.states[0].macromolecule.system.get_output()
@@ -186,7 +186,7 @@ class MCSampler(object):
     # 
     
     '''
-    def __init__(self, sys, initialize=True, sigma_sample_level=None, pct_moves=100, accept_range=(0.3, 0.4)):
+    def __init__(self, sys, initialize=True, sigma_sample_level=None, pct_moves=25, accept_range=(0.3, 0.4)):
         # Ensure that all states in system has a dataset and a model and a scoring function
         '''
         @param sigma_sample_level - None: Don't sample sigmas. "dataset": sample one sigma per dataset. 
@@ -212,7 +212,7 @@ class MCSampler(object):
             raise Exception("Sampler.__init__: Floating point representation for residues is not implemented yet")
 
         self.sigma_sample_level = sigma_sample_level
-        self.sigma_sampler = SampledFloat(0.1, 20, 0.5)
+        self.sigma_sampler = SampledFloat(0.1, 20, 0.05)
         self.pct_moves = pct_moves
         self.acceptance_range = accept_range
         # Recalculates all sectors and timepoint data.
@@ -287,7 +287,7 @@ class MCSampler(object):
         return temp
 
 
-    def run(self, NSTEPS=100, init_temp=10, write=False, write_all=False, acceptance_range=None, find_temperature=True):
+    def run(self, NSTEPS=100, init_temp=10, write=False, write_all=False, acceptance_range=None, find_temperature=False):
         print("Starting run")
         if acceptance_range is None:
             acceptance_range = self.acceptance_range
@@ -298,21 +298,23 @@ class MCSampler(object):
         for s in self.states:
             state_score = s.calculate_score(s.output_model.model)
             init_score += state_score
-            print(s, state_score)
+            #print(s, state_score)
             output_files.append(open(output.get_output_file(s), "a"))
             for d in s.data:
                 d.collect_times()
         if find_temperature:
+            print("Finding initial running temperature")
             temperature = self.get_acceptable_temperature(init_temp=init_temp, acceptance_range=acceptance_range)
         else:
             temperature = init_temp
         print("Simulation temperature = ", temperature)
-        print("Step, score, model_avg_protection_factor, mc_acceptance_ratio")
+        print("Step score | states_avg_protection_factor | mc_acceptance_ratio")
         for i in range(NSTEPS):
-            score, model_avg, acceptance = self.run_one_step(temperature, write_all)
+            #print("Step:", i)
+            score, model_avg_str, acceptance = self.run_one_step(temperature, write_all)
             acceptance_total += acceptance
-            if i%100 == 0:
-                print("Step %i, %0.1f | %0.2f, %0.3f" % (i, score, model_avg, acceptance))
+            if i%10 == 0:
+                print("Step %i, %0.1f | %s, %0.2f" % (i, score, model_avg_str, acceptance))
             if write:
                 for s in range(len(self.states)):
                     st = self.states[s]
@@ -322,14 +324,7 @@ class MCSampler(object):
         print("Average acceptance ratio for this run = ", acceptance_ratio, " |  Temp = ", temperature)
 
         for of in output_files:
-            of.close()
-
-    def get_system_model_parameters(self, system):
-        # The model parameters are the set of sectors and the system.output_model
-        # representation for the exchange factors of these sectors.
-        # 
-        output_model = system.output_model
-        system.get_sectors()
+            of.close()  
 
     def run_one_step(self, temperature, write=False):
         # For one monte carlo step:
@@ -341,7 +336,12 @@ class MCSampler(object):
             # This model is invariant with changes
             #iscore = state.get_score()
             init_model = deepcopy(state.output_model.model)
+            #init_score = state.get_score()# state.calculate_score(init_model)
             init_score = state.get_score()# state.calculate_score(init_model)
+
+
+            #if init_score != init_score_calc:
+            #    raise Exception("Copied and calculated score are different", init_score, init_score_calc)
             #print(" COMPARE_SCORES:", state.name, init_score, iscore, state.collect_score())
             # Precalculate all the sector scores
 
@@ -350,45 +350,85 @@ class MCSampler(object):
             for s in state.sectors:
                 oldscore = state.calculate_peptides_score(s.get_peptides(), state.output_model.model_protection_factors)
                 s.set_score(oldscore)
-  
+
             ###########################
             # This should be movable particles
             ###########################
             # for m in self.movers
             resis = state.observed_residues
+
+
             shuffle(resis)
             flips = int(max(math.ceil((self.pct_moves * len(resis))/100.), 1))
-            #print(flips)
-            init_model = deepcopy(state.output_model.model)
+            # Flip a number of residues
+
             for r in resis[:flips]:
                 # Get the sector that holds this residue           
                 r_sector = state.residue_sector_dictionary[r]
-                oldscore = r_sector.get_score()
+                # Get the current value for this residue
                 oldval = int(state.output_model.get_model_residue(r))
+                # Propose a new value given the current state
+                #oldscore = state.calculate_peptides_score(r_sector.get_peptides(), state.output_model.model_protection_factors)
+                oldscore = r_sector.get_score()
                 newval = self.residue_sampler.propose_move(oldval) 
 
-                # First, change the residue incorporation
-                state.change_single_residue_incorporation(r, int(newval))
-                # Now, calculate the score again. 
+                # Change the residue incorporation values in each sector
+                #state.output_model.change_residue(r, newval)
+                state.change_single_residue_incorporation(r, newval)
+
+                #newscore = state.calculate_peptides_score(s.get_peptides(), state.output_model.model_protection_factors)
                 newscore = state.calculate_peptides_score(r_sector.get_peptides(), state.output_model.model_protection_factors)
-                # Apply metropolis criteria
+                r_sector.set_score(newscore)
+
                 accept = metropolis_criteria(oldscore, newscore, temperature)
+                #print(" ", state.get_name(), r, oldval, newval, "|", oldscore, newscore, accept)
                 if not accept:
-                    # for m in self.movers:
-                    #   m.reject()
-                    # state.reject()
-                    # 
                     flips -= 1
                     #state.output_model.change_residue(r, oldval)
-                    state.change_single_residue_incorporation(r, int(oldval))
+                    state.change_single_residue_incorporation(r, oldval)
                     r_sector.set_score(oldscore)
-            flips2 = 0
+
+                #print("     ", [state.output_model.model_protection_factors[-1]], [(tp.time, tp.get_model_deuteration()*100, tp.get_avg_sd()[0]) for tp in list(r_sector.get_peptides())[0].get_timepoints()] )
+            '''
+            for r in resis[:flips]:
+                oldval = int(state.output_model.get_model_residue(r))
+                newval = self.residue_sampler.propose_move(oldval)
+                state.change_single_residue_incorporation(r, newval)
+
+
+
+            # Now, calculate the score again. 
+            newscore = state.calculate_score(state.output_model.model)
+            
+
+            # Apply metropolis criteria for entire state
+            accept = metropolis_criteria(init_score, newscore, temperature)
+            if not accept:
+                flips -= 1
+                # Return model to initial model
+                state.output_model.model = init_model
+                # Recalculate protection factors
+                state_score = init_score
+                m_sq_change=0
+                #print("NO ACCEPT", init_score, newscore, temperature)
+            else:
+                state_score = newscore
+
+                flips2 = 0
+                for i in range(len(init_model)):
+                    if init_model[i] != state.output_model.model[i]:
+                        flips2 += 1
+
+                #print("ACCEPT", init_score, newscore, temperature, flips)
+
+                # mean squared difference between two states.
+                m_sq_change = (state.output_model.model[i] - init_model[i])**2
+            '''
+            flips2=0
             for i in range(len(init_model)):
                 if init_model[i] != state.output_model.model[i]:
                     flips2 += 1
-                cumchange = (state.output_model.model[i] - init_model[i])**2
-
-            # Sample back exchange 
+                m_sq_change = sum((state.output_model.model - init_model)**2)
 
             if self.sigma_sample_level is not None:
                 for d in state.data:
@@ -396,12 +436,20 @@ class MCSampler(object):
                     #print(d.get_peptides()[10].get_timepoints()[2].get_sigma(), d.get_peptides()[5].get_timepoints()[2].get_sigma())
 
             # Now, calculate the score for the entire state.
-            state_score = state.calculate_peptides_score(None, state.output_model.model_protection_factors)
+            #sum_state_score = 0
+            #for s in state.sectors:
+                #sec_score_new = state.calculate_peptides_score(s.get_peptides(), state.output_model.model_protection_factors)
+            #    sec_score = s.get_score()
+            #    sum_state_score += sec_score
+
+
+            state_score = state.calculate_score(state.output_model.model)
+            #print(state.name, state_score, sum_state_score)
 
             state.set_score(state_score)
             total_score += state_score
 
-            acceptance_ratio += float(flips2)/len(resis)/(self.pct_moves / 100.)
+            #acceptanc2e_ratio += float(flips2)/len(resis)/(self.pct_moves / 100.)
             #print("XX", oldscore, newscore, state.calculate_peptides_score(r_sector.get_peptides(), state.output_model.model_protection_factors))
             mpf = state.output_model.model_protection_factors
             tot_mpf = 0
@@ -412,8 +460,16 @@ class MCSampler(object):
                         tot_mpf += mpf[i-1]
                         num_mpf += 1 
 
-        model_avg = numpy.average(state.output_model.model_protection_factors)
-        return total_score, model_avg, acceptance_ratio/len(self.states)
+            acceptance_ratio += float(flips2)/int(max(math.ceil((self.pct_moves * len(resis))/100.), 1))
+
+            #print("PROTFACT:", state.output_model.model[38:43])
+        model_avg = [numpy.average(state.output_model.model_protection_factors) for s in self.states]
+        model_avg_str = ""
+        for m in model_avg:
+            model_avg_str+=str(m)+" "
+
+        #print(total_score, model_avg_str, m_sq_change)
+        return total_score, model_avg_str, acceptance_ratio/len(self.states)#, m_sq_change #acceptance_ratio/len(self.states)
 
 
     def sample_sigma(self, state, temperature):

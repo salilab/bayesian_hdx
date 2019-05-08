@@ -247,7 +247,11 @@ class Dataset(object):
         self.state = state
 
     def calculate_intrinsic_rates(self):
-        return tools.get_sequence_intrinsic_rates(self.get_sequence(), self.conditions.pH, self.conditions.temperature, log=True)
+        self.intrinsic = tools.get_sequence_intrinsic_rates(self.get_sequence(), self.conditions.pH, self.conditions.temperature, log=True)
+        return self.intrinsic
+
+    def get_intrinsic_rates(self):
+        return self.intrinsic
 
     def get_state(self):
         return self.state

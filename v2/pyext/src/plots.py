@@ -4,14 +4,13 @@
 from __future__ import print_function
 import os
 import system
-import hdx_models
 import numpy
 import math
 import analysis
 from pylab import *
 import matplotlib.pyplot as plt
 import scipy
-from scipy.stats import gaussian_kde
+#from scipy.stats import gaussian_kde
 #from numpy.random import normal
 from scipy.integrate import simps
 import tools
@@ -591,7 +590,8 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
 def plot_residue_protection_factors(parse_output, rate_bins=None, 
                                     resrange=None, plot_prior=True, 
                                     resnum_skip=10, num_best_models=100,
-                                    show=False, sort_sectors=True):
+                                    show=False, sort_sectors=False,
+                                    true_vals=None, outputdir=None):
     # Input is a standard output model file and the rate bins
     # Should note the sectors as well, along with overlap.
     # Outputs a plot with a sing
@@ -599,14 +599,14 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
 
     colors = ["red", "blue", "yellow", "green"]
 
-    resnum_label_skip=resnum_skip
+    resnum_label_skip = resnum_skip
 
     # Get data and place into list of lists.
     
     if type(parse_output) != list:
         parse_output = [parse_output]
 
-    data_list = [] #[po][]
+    data_list = []
     for po in parse_output:
         #print(po, len(po.get_best_scoring_models(num_best_models, return_pf=True)))
         if num_best_models=="all":
@@ -614,6 +614,14 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
         else:
             data_list.append(po.get_best_scoring_models(num_best_models, return_pf=True, sort_sectors=sort_sectors))
 
+
+
+    # data_list contains a list of a list of models.  
+    #   The first index is the number of ParseOutput objects
+    #   The second index is the model number
+    #   The third index is 0 for the score and 1 for the model
+    #   The fourth index is always zero, since the model is a list of a lists. Keeping this for potential multi-state
+    #   The fifth index is the residue in the model. 
     nres = len(data_list[0][1][1][0])
     nmod = len(data_list[0])
 
@@ -623,15 +631,16 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     #print(maxbin, minbin, nres, nmod)
 
     pf_list = []
-    # make array of models
+    # pf_list is an array of models
     for d in data_list:
-        pfs = []        
+        pfs = []   
+        # Loop over all models in this list     
         for i in d:
+            # Append just the model itself. 
             pfs.append(numpy.array(i[1][0]))
-            #print(i[1][0])
+            #print(i[1][0][38:45])
         pf_list.append(numpy.array(pfs))
-        #print(len(data_list),len(pf_list), len(pf_list[0]), len(pf_list[0][0]))
-
+        #print("LEN:", len(data_list),len(pf_list), len(pf_list[0]), len(pf_list[0][0]))
     # How to calculate xlim? Keep the uniform prior the same proportion of the window
     # So proportional to 1/bins.  Say 3 or 4 times this value?
     xlim = 1.0/maxbin * 4
@@ -658,13 +667,13 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     else:
         x = numpy.linspace(minbin,maxbin,parse_output[0].grid_size)
 
-    # Calculate the histograms
+    # Calculate the histograms over all rate bins for each residue in the desired range
     for n in resrange:
         d_hists=[]
         for d in pf_list:
-            #print(type(d), d)
+            #print(type(d), len(d))
             nums = d[:,n-1]
-            #print(n, nums, nums[0])
+            #print("N", n, nums, nums[38:42])
             if math.isnan(nums[0]):
                 d_hists.append(numpy.zeros(parse_output[0].grid_size))
             else:
@@ -682,9 +691,11 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     for nd in resrange:
         # n is the plot index; nd is the residue index
         n = nd - resrange[0]
+        #print(nd, n)
         x_lists = data[n]   
         for i in range(len(x_lists)):
             xl = x_lists[i]
+            #print("   ---", xl)
             arr = numpy.array(xl)
 
             ax[n].set_xticks([]) 
@@ -712,7 +723,6 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
 
          
             if not math.isnan(arr[0]):
-                #print(nd, x, arr, len(arr), len(x), numpy)
                 ax[n].fill_betweenx(x,0,arr,facecolor=colors[i],alpha=0.5, lw=0)
                 ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)   
                 # Add in lower bar for information content
@@ -728,11 +738,23 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
             
             ax[n].set_frame_on(False)
 
-    ax[0].set_ylabel("Log(Protection Factor)")
+        if true_vals:
+            if nd in true_vals:
+                #print("TVal", nd, true_vals[nd])
+                ax[n].plot((-1, 1), (true_vals[nd], true_vals[nd]), "k-",  color='green', lw=2)
+
+
+    ax[0].set_ylabel("Log(Pf)")
     ax[0].set_yticks([0,2,4,6,8,10,12,14])
     #ax[0].tick_params(axis='y', which='major', labelsize=8)
 
-    plt.savefig("test_violins_pf.png", dpi=1000, format="png")
+    if outputdir is not None:
+        if sort_sectors:
+            plt.savefig(outputdir+"/protection_factor_distributions_sorted.png", dpi=1000, format="png")
+        else:
+            plt.savefig(outputdir+"/protection_factor_distributions.png", dpi=1000, format="png")
+    else:
+        plt.savefig("protection_factor_distributions.png", dpi=1000, format="png")
     if show:
         plt.show()
 
@@ -745,6 +767,8 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
          2) Plot the mean/SD along with experimental values
          3) Write plot to the output directory
     '''
+
+    #print("HI", len(po.get_datasets()))
     state_name_prefix = po.state_name
     if output_directory is None:
         output_directory = "incorporation_plots/"
@@ -752,6 +776,9 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
     # Get the best scoring models as protection factors
     # Returns as a list of tuples [(score, [pfs])]
     bsms = po.get_best_scoring_models(num_models, return_pf=True)
+
+    #for gsm in bsms:
+    #    print("score:", gsm[0])
 
     # Get the list of datasets used to compute the models
     datasets = po.get_datasets()
@@ -775,16 +802,19 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
                 protection_factors = gsm[1][0]
 
                 # Return the deuteration for each residue at each timepoint
-                # A dictionary of key = time : value = [list of residue resolved 
-                # deuterium incorporations]
-                residue_deuterations = tools.get_residue_deuteration_at_each_timepoint(d, protection_factors)
+                # A dictionary of key = time : value = [list of residue resolved deuterium incorporations]
+                #residue_deuterations = tools.get_residue_deuteration_at_each_timepoint(d, protection_factors)
+                incorporations = tools.calculate_incorporation(d.intrinsic, protection_factors, set([tp.time for tp in d.get_all_timepoints()]))
                 #print("    score:", gsm[0], "|",  [protection_factors[r-1] for r in resis], [residue_deuterations[30.0][r-1] for r in resis])
                 # Loop over all timepoints in this peptide
-                for time in [tp.time for tp in pep.get_timepoints()]:
+                for tp in pep.get_timepoints():
+                    time = tp.time
                     model_deut = 0
                     for r in resis:
-                        model_deut += residue_deuterations[time][r-1]
-                        #print(pep.sequence, pep.start_residue, r, residue_deuterations[time][r-1], model_deut)
+                        #print(r, len(incorporations), incorporations[96], d.times)
+                        #print(incorporations[r])
+                        model_deut += incorporations[r][time] #residue_deuterations[time][r]
+                    #print(pep.sequence, time, model_deut, model_deut/len(pep.get_observable_residue_numbers())*100, tp.get_avg_sd())
                     model_deuteration_by_time[time].append(model_deut/len(pep.get_observable_residue_numbers())*100)
 
             welchs_t = 0
@@ -809,6 +839,8 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
                 except:
                     pass
                 fig.savefig(output_directory + "/" + state_name_prefix+"/"+ pep.sequence + "_NM" + str(num_models) +".png", )
+            print("HELLO")
+            plt.close(fig)
 
 def plot_incorporation_curve(deuteration_by_time, exp, ax=None, color='blue', plot=False):
     # Given a set of experimental and model deuteration values
@@ -829,7 +861,7 @@ def plot_incorporation_curve(deuteration_by_time, exp, ax=None, color='blue', pl
     for time in exp.keys():
         for value in exp[time]:
             # Plot each experimental timepoint
-            plt.scatter(time, value, c=color)
+            ax.scatter(time, value, c=color)
 
     for time in deuteration_by_time.keys():
         avg = numpy.average(deuteration_by_time[time])

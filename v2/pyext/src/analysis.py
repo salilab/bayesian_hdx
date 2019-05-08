@@ -274,6 +274,7 @@ class ParseOutputFile(object):
         self.output_file = output_file
         self.state_name = state_name
         self.datafiles = []
+        self.datasets=[]
         self.sectors = []
         self.pf_grids = {}
         self.observed_residues = []
@@ -369,6 +370,7 @@ class ParseOutputFile(object):
                     model_list.append(int(m))
                 if return_pf:
                     ml1 = model_list
+                    exit()
                     model_list = self.models_to_protection_factors(model_list)
                     #print(score, model_list, ml1)
                 models.append((score, model_list)) 
@@ -426,6 +428,7 @@ class ParseOutputFile(object):
                     best_scoring_models = sorted(best_scoring_models, key=lambda x: x[0])
 
         self.best_scoring_models = best_scoring_models
+
         return best_scoring_models
 
     def models_to_protection_factors(self, models):
@@ -433,19 +436,20 @@ class ParseOutputFile(object):
         # CHECK THAT THE MODEL SIZE IS CORRECT!
         if type(models[0]) != list:
             models = [models]
-        #print(models)
+
         output = []
+
         for m in models:
             pf_model = []
             for res in range(len(m)):
                 if res + 1 in self.observed_residues:
                     #print("RES", res+1, m[res], self.pf_grids[res+1][m[res]-1])
                     pf_model.append(float(self.pf_grids[res+1][m[res]-1]))
-
                 else:
                     pf_model.append(numpy.nan)
             output.append(pf_model)
-
+            #print("MOD:", m[38:45])
+            #print("PF:",pf_model[38:45])
         return output
 
     def get_sectors(self):
@@ -463,21 +467,31 @@ class ParseOutputFile(object):
         #if s_len != len(model):
         #    print("ERROR: sector length", s_len, "is not equal to model length ", len(model))
         #    exit()
+        #print("IM:", model[68:75])
         out_model = numpy.zeros(len(model))
         # Loop over all sectors
         for s in self.sectors:
             if len(s) == 0:
                 continue
-            #print(s)
+
             sec_model = model[s[0]-1:s[-1]]
             sort_model = numpy.sort(sec_model) #sort indexes in increasing order
-
+            #print("SEC:", s[0], sec_model, sort_model)
             # find indexes = 0
-            idx_zero = [index for index, v in enumerate(sort_model) if v == 0]
-            idx_nonzero = [index for index, v in enumerate(sort_model) if v != 0]
-            for i in range(len(idx_nonzero)):
+            idx_zero = [index for index, v in enumerate(sec_model) if v == 0]
+            idx_nonzero = [index for index, v in enumerate(sec_model) if v != 0]
+            offset=0
+            for i in range(len(s)):
+                if i in idx_zero:
+                    out_model[i] = 0
+                    offset += 1
+                else:
+                    out_model[i+offset] = sort_model[i + len(idx_zero)-offset]
+                #print(i, idx_nonzero[i] - 2 + s[0], sort_model[i + len(idx_zero)])
                 out_model[idx_nonzero[i] - 1 + s[0]] = sort_model[i + len(idx_zero)]
-            #print(s, sec_model, sort_model, out_model[s[0]-1:s[-1]])
+            #print("SEC_MODEL:", s, sec_model, sort_model, out_model[s[0]-1:s[-1]])
+        #print("OM:", out_model[68:75])
+
         return out_model.astype(int)
 
     def sort_models(self):

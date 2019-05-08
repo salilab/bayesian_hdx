@@ -181,6 +181,7 @@ class State(object):
         self.output_model = output_model
         self.scoring_function = scoring_function
         self.residue_sector_dictionary = {}
+        self.score=10000000
 
     def get_output(self):
         return self.macromolecule.system.get_output()
@@ -387,30 +388,33 @@ class State(object):
 
         for d in self.data:
             timepoints = set([tp.time for tp in d.get_all_timepoints()])
-            self.residue_incorporations[d] = tools.calculate_incorporation(numpy.ones(len(protection_factors))*d.calculate_intrinsic_rates(), protection_factors, timepoints)
+            self.residue_incorporations[d] = tools.calculate_incorporation(numpy.ones(len(protection_factors))*d.get_intrinsic_rates(), protection_factors, timepoints)
             #print(protection_factors, self.residue_incorporations[d])
             d.sum_residue_incorporations(self.residue_incorporations[d])
 
         return self.residue_incorporations
 
 
-    def change_single_residue_incorporation(self, residue_number, new_pf, change_tp_deut=True):
+    def change_single_residue_incorporation(self, residue_number, new_val, change_tp_deut=True):
         '''
         Upon changing a protection factor, update the 2D incorporation for that residue
         among all peptides in all datasets and the output_model. 
 
         @param residue_number - the residue number to be changed
-        @param new_pf - the new protection factor value to change it to
+        @param new_val - the new protection factor model value to change it to
         @param change_tp_deut - True if you want to change the data incorporation values
         '''
-        old_pf = self.output_model.model_protection_factors[residue_number-1]
-        self.output_model.change_residue(residue_number, new_pf)
+        old_val = self.output_model.model[residue_number-1]
+
+        #print("PF", residue_number, new_val, old_val)
+        # Change residue already bakes in the -1
+        self.output_model.change_residue(residue_number, new_val)
 
         for d in self.data:
             delta = {}
-            new_rate = d.get_max_rate() - self.output_model.model_protection_factors[residue_number-1]
+            new_rate = d.intrinsic[residue_number-1] - self.output_model.model_protection_factors[residue_number-1]
 
-            times = d.get_all_times() #set([tp.time for tp in d.get_all_timepoints()])
+            times = d.get_all_times() 
 
             for time in times:
                 new_deut = tools.calculate_simple_deuterium_incorporation(new_rate, time)
@@ -418,16 +422,16 @@ class State(object):
                 self.residue_incorporations[d][residue_number][time] = new_deut
                 delta[time] = new_deut - old_deut
                 #print("  Change r#", residue_number, "from PF=", old_pf, "to", self.output_model.model_protection_factors[residue_number-1], "Deuts:", old_deut, new_deut)
-                #print(residue_number, new_pf, self.output_model.pf_grids[residue_number-1][new_pf-1], time, new_deut, old_deut)
-            '''
+                #print(residue_number, new_val, self.output_model.pf_grids[residue_number-1][new_pf-1], time, new_deut, old_deut)
+
             if change_tp_deut:   
                 for pep in d.get_peptides_with_residue(residue_number):
                     for tp in pep.get_timepoints():
                         old_inc = tp.model_deuteration
                         #tp.model_deuteration += delta[tp.time]
                         tp.model_deuteration += delta[tp.time]
-                        print("  >>", pep.sequence, new_pf, tp.time, "|||", old_inc, delta[tp.time], tp.model_deuteration)
-            '''
+                        #print("  >>", pep.sequence, new_val, tp.time, "|||", old_inc, delta[tp.time], tp.model_deuteration)
+
     def calculate_score(self, model, calc_incorporations=False):
         # @param model is a proposed model for the system
 
@@ -508,14 +512,10 @@ class State(object):
         if peptides is None:
             peptides = self.get_all_peptides()
 
-        # So this step is uber inefficient.  Just update the peptides that are changed.
-        #tools.get_residue_peptide_deuteration_at_each_timepoint(self.sequence, peptides, protection_factors)
-
         total_score = self.scoring_function.protection_factor_prior(protection_factors)
 
         scoring_function = self.scoring_function
         
-
         for pep in peptides:
             sigma0 = pep.dataset.sigma_estimate
             peptide_score = 0
@@ -523,39 +523,43 @@ class State(object):
             d = pep.get_dataset()
 
             observable_residues = pep.get_observable_residue_numbers()
+            #print(pep.sequence, observable_residues)
 
             for tp in pep.get_timepoints():
                 # initialize tp score to the sigma prior
                 tp_score = -1*math.log(scoring_function.experimental_sigma_prior(tp.sigma, sigma0))
-                #print("exs_prior", tp_score, tp.sigma, sigma0)
-                # Get deuteration percent of this timepoint with the given Pfs
 
-                model_tp_raw_deut = self.sum_incorporations(self.calculate_residue_incorporation(self.output_model.model_protection_factors)[d], observable_residues, tp.time)
+                #model_tp_raw_deut = self.sum_incorporations(self.calculate_residue_incorporation(self.output_model.model_protection_factors)[d], observable_residues, tp.time)
+                model_tp_raw_deut = 0
+                for r in observable_residues:
+                    model_tp_raw_deut += self.residue_incorporations[d][r][tp.time]
+
+                #------------------------------
+                # Here is where we would add back exchange estimate
+                #------------------------------
+
                 # Convert raw deuterons into a percent
-                #print("CPS  **  model tp deut:", tp.time, protection_factors[-1], model_tp_deut)
                 model_tp_deut = float(model_tp_raw_deut)/pep.num_observable_amides * 100
-
 
                 # Calculate a score for each replicate
                 for rep in tp.get_replicates():
-                    #####
                     replicate_likelihood = scoring_function.replicate_score(model=model_tp_deut, exp=rep.deut, sigma=tp.sigma) 
-                    #print(pep.sequence, tp.time, [protection_factors[i-1] for i in pep.get_observable_residue_numbers()], "|", -1*math.log(replicate_likelihood), "|", tp.get_model_deuteration(), model_tp_deut, rep.deut, tp.sigma)
-                    #print(pep.get_sequence(), tp.time, replicate_likelihood)
+
                     if replicate_likelihood <= 0:
-                        rep.set_score(10000)
+                        rep.set_score(10000000000)
                     else:
                         rep.set_score(-1*math.log(replicate_likelihood))
 
                     tp_score += rep.get_score()
 
+                # Set the timepoint score
                 tp.set_score(tp_score)
-                #print(pep.sequence, tp.time, model_tp_deut, tp.get_avg_sd(), tp_score)
+
                 peptide_score += tp_score
-                #print(tp.time, tp_score, len(pep.get_timepoints()))
 
             total_score += peptide_score
-            #print(pep.sequence, peptide_score, tp_score, tp.time)
+            #print(pep.sequence, observable_residues, peptide_score)
+            #print("   ", [self.sequence[s-1] for s in observable_residues])
 
         self.total_score = total_score
         return total_score
@@ -598,6 +602,7 @@ class Sector(object):
         self.id = sector_number
         self.num_amides = len(self.residues) # self.get_number_of_amides()
         self.length = len(self.residues)
+        self.score = 100000000
 
     def get_number_of_residues(self):
         return len(self.residues)

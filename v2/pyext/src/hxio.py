@@ -159,7 +159,8 @@ def import_json(infile, name=""):
     return dataset
 
 
-def import_HDXWorkbench(infile, macromolecule=None, name="Data", sequence=None, error_estimate=5.0, n_fastamides=2, offset=0):
+def import_HDXWorkbench(infile, macromolecule=None, name="Data", sequence=None, error_estimate=5.0, n_fastamides=2, offset=0,
+                    max_t=36000):
     '''
     HDXWorbench files are different because they contain information from two experiments.
     They recieve a macromolecule rather than a single state and will create
@@ -274,7 +275,7 @@ def import_HDXWorkbench(infile, macromolecule=None, name="Data", sequence=None, 
                 time = float(line.split(',')[column_headers.index("timepoint")].replace("s",""))
 
                 # If the time is 0.0, that's weird.  Ignore that.
-                if time==0.0:
+                if time==0.0 or time > max_t:
                     continue
 
                 deut=float(line.split(',')[column_headers.index("percentd_replicate")])

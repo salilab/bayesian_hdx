@@ -34,7 +34,8 @@ class ResidueGridModel(object):
 
         self.grid_size = grid_size
         self.protection_factors = protection_factors
-        self.model_protection_factors = numpy.zeros(self.length)
+        self.model = numpy.zeros(self.length)   # The model values that are used in the sampler
+        self.model_protection_factors = numpy.ones(self.length)*-1  # The protection factors
         self.sampler_type = "int"
         self.sampler_size = range(1, grid_size+1)
         self.state.set_output_model(self)
@@ -77,6 +78,12 @@ class ResidueGridModel(object):
     def convert_model_to_rates(self, model):
         return self.convert_model_to_protection_factors(model)
 
+    def get_pf(self, res, i):
+        # Given an integer and residue number, return the corresponding grid value that
+        # Corresponds to the protection factor.
+        #print("PFG", res, i)
+        return self.pf_grids[res-1][i-1]
+
     def convert_model_to_protection_factors(self, model):
         # For a vector of grid values (the model), return a vector of protection values
         pf_grids = self.pf_grids
@@ -85,7 +92,7 @@ class ResidueGridModel(object):
             if int(model[i]-1) == -1:
                 self.model_protection_factors[i] = -1
             else:
-                self.model_protection_factors[i] = pf_grids[i][int(model[i]-1)]
+                self.model_protection_factors[i] = self.get_pf(i, int(model[i]-1))
         
         #self.model_protection_factors = [pf_grids[i][int(model[i]-1)] for i in range(self.length)]
         return self.model_protection_factors
@@ -135,26 +142,26 @@ class ResidueGridModel(object):
         with the protection factor values for each residue.
         '''
         return self.pf_grids
-
+    '''
     def output_conversion_model(self, outfile):
         model_string = ""
-        for i in self.model:
+        for i in self.model_protection_factors:
             the_string+=" "+str(i)
         the_string = str(self.model)
 
         # Conversion_string is a list of
         pf_grid_value_string = str(pf_grid)
         return pf_grid_value_string, model_string[0:-1]
-
+    '''
     def change_residue(self, residue, value):
-        # Changes the grid value of a single residue in the model
+        # Changes the grid value of a single residue in the model in both the grid and protection factor. 
         if type(value) is not int:
-            raise Exception("ResidueGridModel.change_residue : value must be of type int. Currently ", + type(int))
+            raise Exception("ResidueGridModel.change_residue : value must be of type int. Currently ", type(value))
         if value >=1 and value < self.grid_size +1:
             self.model[residue-1] = value
             self.model_protection_factors[residue-1] = self.pf_grids[residue-1][int(value-1)]
         else:
-            raise Exception("ResidueGridModel.change_residue : value must be between 1 and ", grid_size +1, ". Currently ", + int)           
+            raise Exception("ResidueGridModel.change_residue : value must be between 1 and ", grid_size +1, ". Currently ",  value)           
     
     def get_model_residue(self, residue):
         # Returns the integer value of a single residue in the current model
@@ -174,9 +181,6 @@ class ResidueGridModel(object):
             else:
                 mod.append(0)
         return mod
-
-
-
 
 
 class MultiExponentialModel(object):
@@ -239,6 +243,7 @@ class MultiExponentialModel(object):
         #Or use a user defined value or just the first value.
 
         if init=="enumerate":
+            print("Enumerating starting position")
             self.guess_init_exp_sequence(5)
         else:
             for n in range(0,model.num_res-1):
