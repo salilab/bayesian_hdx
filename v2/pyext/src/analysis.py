@@ -8,6 +8,8 @@ import hxio
 import numpy
 import math
 import time
+import scipy
+from scipy import stats
 from copy import deepcopy
 import os.path
 from pylab import *
@@ -50,7 +52,7 @@ class Convergence(object):
 
     def get_models(self, num_gsm="all"):
         m1 = sorted(self.models1, key=lambda x: x[0])
-        m2 = sorted(self.models1, key=lambda x: x[0])
+        m2 = sorted(self.models2, key=lambda x: x[0])
         if num_gsm=="all":
             mod1 = [g[1] for g in m1]
             mod2 = [g[1] for g in m2]
@@ -60,11 +62,6 @@ class Convergence(object):
         return mod1, mod2         
 
     def total_score_pvalue_and_cohensd(self, num_gsm="all"):
-        try:
-            from scipy import stats
-        except:
-            print("Convergence:: scipy not installed. Skipping p-value test")
-            return -1
 
         ts1, ts2 = self.get_scores(num_gsm)
 
@@ -81,12 +78,6 @@ class Convergence(object):
         return pvalue, cohens_d
 
     def residue_pvalue_and_cohensd(self, num_gsm="all"):
-
-        try:
-            from scipy import stats
-        except:
-            print("Convergence:: scipy not installed. Skipping p-value test")
-            return -1
         
         bsm1, bsm2 = self.get_models(num_gsm)
         output=[]
@@ -123,29 +114,30 @@ class Convergence(object):
         if num_models == 'all':
             num_models = self.num_gsm
 
-        bsm1, bsm2 = self.get_models(self.num_gsm)
-        num_models = len(bsm1) + len(bsm2)
+        self.num_gsm = num_models
 
-        print(len(bsm1+bsm2), self.num_gsm)
-        #print(len(bsm1.join(bsm2)))
+        self.bsm1, self.bsm2 = self.get_models(num_models)
 
-        self.full_distance_matrix = (pairwise_distances(numpy.array(bsm1+bsm2), metric='cosine', n_jobs=-1)* 10)**2
+        self.full_distance_matrix = (pairwise_distances(numpy.array(self.bsm1+self.bsm2), metric='cosine', n_jobs=-1)* 10)**2
         return self.full_distance_matrix
 
     def precision_cluster(self, threshold):
 
-        distmat = self.get_distance_matrix(num_models='all')
-
+        distmat = self.full_distance_matrix  #self.get_distance_matrix(num_models='all')
+        num_models = len(distmat[0])
         # 1) get neighbors
         neighbors=[]
-        for count in range(len(distamat[0])):
+        for count in range(num_models):
             neighbors.append([count]) # model is a neighbor of itself
 
         for i in range(num_models-1):
-            for j in range(i+1,num_models):    
-                if distmat[i][j]<=rmsd_cutoff:
+            for j in range(i+1,num_models): 
+
+                if distmat[i][j]<=threshold:
                     neighbors[i].append(j)
                     neighbors[j].append(i)
+                #print(i,j,distmat[i][j],len(neighbors[i]),len(neighbors[j]))   
+
 
         # 2). Get the weightiest cluster, and iterate
         unclustered=[]
@@ -159,6 +151,7 @@ class Convergence(object):
 
 
         while len(unclustered)>0:
+
             # get cluster with maximum weight
             max_neighbors=0
             currcenter=-1
@@ -185,14 +178,15 @@ class Convergence(object):
         
         return cluster_centers, cluster_members
 
+
     def get_clusters(self, cutoffs_list):
-        #Do Clustering on a Grid
+        # Do Clustering on a Grid
         pvals=[]
         cvs=[]
         percents=[]
 
         f1=open("%s.ChiSquare_Grid_Stats.txt" % "Test", 'w+')
-
+        f1.write("Threshold, Pvalue, CramersV, Pct_Ensemble_Explained\n")
         bsm1, bsm2 = self.get_models(self.num_gsm)
 
         for c in cutoffs_list:
@@ -208,9 +202,11 @@ class Convergence(object):
             cvs.append(cramersv)
             percents.append(percent_explained)
             
-            print >>f1, c, pval, cramersv, percent_explained
+            f1.write(str(c)+", "+str(pval)+", "+str(cramersv)+", "+str(percent_explained)+"\n")
 
         return pvals, cvs, percents
+
+
 
     def get_cutoffs_list(self, gridSize):
 
@@ -251,6 +247,26 @@ class Convergence(object):
         return numpy.array(reduced_ctable),retained_clusters
 
 
+    def test_sampling_convergence(self, contingency_table, total_num_models):
+
+        if len(contingency_table)==0:
+            return 0.0,1.0
+        
+        ct = numpy.transpose(contingency_table)
+        [chisquare,pvalue,dof,expected]=scipy.stats.chi2_contingency(ct)
+        if dof==0.0:
+            cramersv=0.0
+        else:
+            cramersv=math.sqrt(chisquare/float(total_num_models))
+            
+        return(pvalue,cramersv)
+
+    def percent_ensemble_explained(self, ctable,total_num_models):
+        if len(ctable)==0:
+            return 0.0
+        percent_clustered=float(numpy.sum(ctable,axis=0)[0]+numpy.sum(ctable,axis=0)[1])*100.0/float(total_num_models)
+        return percent_clustered
+
     def get_sampling_precision(self, cutoffs_list, pvals, cvs, percents):
         sampling_precision=max(cutoffs_list)
         pval_converged=0.0
@@ -268,9 +284,67 @@ class Convergence(object):
             else:
                 sampling_precision=max(cutoffs_list)
 
+        self.sampling_precision = sampling_precision
+
         return sampling_precision,pval_converged,cramersv_converged,percent_converged
 
+    def cluster_at_threshold_and_return_pofs(self, threshold):
+        '''
+        Cluster the gsms at a given threshold and return lists of POF objects 
+        corresponding to all models from each cluster
+        '''
+        cluster_centers,cluster_members = self.precision_cluster(threshold)
+
+        all_models = self.bsm1 + self.bsm2
+
+        cluster_pofs = []
+        for c in range(len(cluster_centers)):
+            # Create a copy of the PO file
+            new_po = deepcopy(self.sample1)
+            new_po.clear_models()
+            # Loop over all models in the cluster
+            for m in cluster_members[c]:
+                new_po.models.append(all_models[m])
+            print(" --", c, len(cluster_members[c]), len(new_po.models))
+            cluster_pofs.append(new_po)
+
+        for pof in cluster_pofs:
+            print("POF", len(pof.models))
+
+        return cluster_pofs
+
+
+class DeltaHDX(object):
+    '''
+    A class that utilizes two POF objects to compute the mean and standard deviation 
+    between the protection factors at each residue
+    '''
+    def __init__(self, pof1, pof2):
+        self.pof1 = pof1
+        self.pof2 = pof2
+
+    def calculate_dhdx(self):
+        pass
+
+    def write_dhdx_file(self):
+        '''
+        Calculate the dhdx file and write a file of format:
+        Res# Res state_name dhdx dhdx_z avg_lig avg_apo sd_lig sd_apo flag
+        '''
+        state_name = self.pof1.state_name
+        nres = max(self.observed)
+
+
+
+
 class ParseOutputFile(object):
+    '''
+    An object that stores all of the information from an hxio.Output file.
+    Also can be used as a general tool for analyzing sets of data.
+
+    To create a copy of this object, do >new_pof = deepcopy(pof) to retain all
+    of the header information and then clear the models
+    '''
     def __init__(self, output_file):
         self.output_file = output_file
         self.datafiles = []
@@ -327,6 +401,9 @@ class ParseOutputFile(object):
             elif line.split(":")[0].strip() == "Molecule_Name":
                 self.molecule_name = line.split(":")[1].strip()
         f.close()
+
+    def clear_models(self):
+        self.models = []
 
     def cluster_models_kmeans(self, nmodels, nclust):
         # Uses kmeans to cluster models
@@ -464,10 +541,7 @@ class ParseOutputFile(object):
         # check that the model and total length of the sectors is the same:
         s_len = 0
         s_len = sum([len(s) for s in self.sectors])
-        #if s_len != len(model):
-        #    print("ERROR: sector length", s_len, "is not equal to model length ", len(model))
-        #    exit()
-        #print("IM:", model[68:75])
+
         out_model = numpy.zeros(len(model))
         # Loop over all sectors
         for s in self.sectors:
@@ -476,8 +550,7 @@ class ParseOutputFile(object):
 
             sec_model = model[s[0]-1:s[-1]]
             sort_model = numpy.sort(sec_model) #sort indexes in increasing order
-            #print("SEC:", s[0], sec_model, sort_model)
-            # find indexes = 0
+
             idx_zero = [index for index, v in enumerate(sec_model) if v == 0]
             idx_nonzero = [index for index, v in enumerate(sec_model) if v != 0]
             offset=0
@@ -487,11 +560,7 @@ class ParseOutputFile(object):
                     offset += 1
                 else:
                     out_model[i+offset] = sort_model[i + len(idx_zero)-offset]
-                #print(i, idx_nonzero[i] - 2 + s[0], sort_model[i + len(idx_zero)])
                 out_model[idx_nonzero[i] - 1 + s[0]] = sort_model[i + len(idx_zero)]
-            #print("SEC_MODEL:", s, sec_model, sort_model, out_model[s[0]-1:s[-1]])
-        #print("OM:", out_model[68:75])
-
         return out_model.astype(int)
 
     def sort_models(self):
