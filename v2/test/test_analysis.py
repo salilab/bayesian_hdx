@@ -44,7 +44,10 @@ class TestOutputAnalysis(unittest.TestCase):
         self.assertEqual(len(oa.pof1.models), 5100*3)
         self.assertEqual(len(oa.pof2.models), 5100*3)
         
-        self.assertEqual(len(oa.get_all_scores()), 5100*6)
+    def test_get_best_scoring_models(self):
+        oa = self.create_output_analysis() 
+        self.assertEqual(len(oa.get_all_scores()), 5100*6)        
+        self.assertEqual(len(oa.get_best_scoring_models(1000)), 1000)     
 
 
 

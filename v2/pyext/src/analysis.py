@@ -8,6 +8,7 @@ import hxio
 import numpy
 import math
 import time
+from copy import deepcopy
 import os.path
 from pylab import *
 from matplotlib import *
@@ -39,7 +40,7 @@ class Convergence(object):
     def calc_num_of_gsm(self, models):
         # For each set of models (models1, models2), calculate the optimal number
         # of good scoring models.
-
+        # NOT IMPLEMENTED!!
         for i in range(3,len(models)):
             j=0
 
@@ -596,12 +597,18 @@ class OutputAnalysis(object):
     def get_all_scores(self):
         # Plot the scores for all the models
         all_models = self.pof1.models + self.pof2.models
-
         scores = [mod[0] for mod in all_models]
-
         return numpy.sort(scores)
 
 
+    def get_best_scoring_models(self, num):
+        # Get the best scoring models from both independent sets
+        new_pof = deepcopy(self.pof1)
+        pof_all = concatenate_pofs(new_pof, self.pof2)
+        return pof_all.get_best_scoring_models(num)
+
+    def get_convergence(self, num_models):
+        return Convergence(self.pof1, self.pof2, num_models)
 
 
 def concatenate_pofs(pof1, pof2):
