@@ -2,28 +2,31 @@
 [![codecov](https://codecov.io/gh/salilab/bayesian_hdx/branch/master/graph/badge.svg)](https://codecov.io/gh/salilab/bayesian_hdx)
 
 # bayesian_hdx
-Bayesian Analysis of HDX-MS Data. Calculate the magnitude and significance of a perturbation in HDX at quasi-residue resolution.
+Bayesian Analysis of HDX-MS Data. 
 
 ----------------------
-## Version 2.0 will be released by end of Feb 2019:
+## Version 2.0 is live
 The major change in V2.0 is the explicit calculation of protection factors for each residue, rather than the difference between two states. Estimations of the magnitude and significance of difference, the focus of v1.0, is essentially unchanged, however, I do see some small, but insignificant numerical differences between the two methods. 
+
+The documentation for the v2.0 workflow is found in the v2 directory.  Eventually, v1 will be deprecated.  
 
 ### Notable changes/additions
 * 2-10 fold increase in speed
 * Calculation of intrinsic unfolded exchange rates based on Bai, Englander 1993.
 * Consolidated output file to allow restarting of modeling runs
-* Addition
 * Bug fixes
 ----------------------
 
 ## Version 1.0 doc
 
+Calculate the magnitude and significance of a perturbation in HDX at quasi-residue resolution.
+
 ### Requirements
 * python 2.7 or 3.X. 
 * numpy
 * scikit-learn
+* scipy
 * matplotlib
-* pylab
 
 ## Usage
 
