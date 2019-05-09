@@ -316,7 +316,7 @@ class Convergence(object):
 
 class DeltaHDX(object):
     '''
-    A class that utilizes two POF objects to compute the mean and standard deviation 
+    A class that utilizes two POF objects to compute the mean (pof2 - pof1) and standard deviation 
     between the protection factors at each residue
     '''
     def __init__(self, pof1, pof2):
@@ -324,17 +324,53 @@ class DeltaHDX(object):
         self.pof2 = pof2
 
     def calculate_dhdx(self):
-        pass
+        # Calculates delta HDX
+        pf_models1 = numpy.array([m[1][0] for m in self.pof1.get_all_models(return_pf=True)])
+        pf_models2 = numpy.array([m[1][0] for m in self.pof2.get_all_models(return_pf=True)])
 
-    def write_dhdx_file(self):
+        mean1 = numpy.mean(pf_models1, axis=0)
+        mean2 = numpy.mean(pf_models2, axis=0)
+
+        std1 = numpy.std(pf_models1, axis=0)
+        std2 = numpy.std(pf_models2, axis=0)
+
+        diff = mean2 - mean1
+        Z = (mean2 - mean1)/numpy.sqrt(numpy.square(std1)+numpy.square(std2)+0.0000001)
+
+        return diff, Z, mean1, mean2, std1, std2
+        # convert models
+
+    def write_dhdx_file(self, prefix=None, resrange=None):
         '''
         Calculate the dhdx file and write a file of format:
         Res# Res state_name dhdx dhdx_z avg_lig avg_apo sd_lig sd_apo flag
         '''
-        state_name = self.pof1.state_name
-        nres = max(self.observed)
+        state_name1 = self.pof1.state_name
+        state_name2 = self.pof2.state_name
+        molecule_name = self.pof1.molecule_name
 
+        filename = molecule_name+"_"+state_name1 + "_"+state_name2+".dhdx"
 
+        if prefix is not None:
+            filename = prefix + filename
+
+        f = open(filename, "w")
+        f.write("Res# Res XX dhdx dhdx_z avg_state2 avg_state1 sd_state2 sd_state1 flag\n")
+
+        if resrange is None:
+            minres = min(min(self.pof1.observed_residues), min(self.pof2.observed_residues))
+            maxres = max(max(self.pof1.observed_residues), max(self.pof2.observed_residues))
+
+            resrange = range(minres, maxres)
+        else:
+            resrange = resrange
+
+        diff, Z, mean1, mean2, sd1, sd2 = self.calculate_dhdx()
+
+        for r in resrange:
+            f.write(str(r)+" "+str("A")+" XX "+ str(diff[r-1]) + " " + str(Z[r-1]) + " " + str(mean2[r-1])+ " " + str(mean1[r-1]) + " " + str(sd2[r-1])+ " " + str(sd1[r-1])+"\n")
+
+        f.close()
 
 
 class ParseOutputFile(object):
@@ -447,7 +483,6 @@ class ParseOutputFile(object):
                     model_list.append(int(m))
                 if return_pf:
                     ml1 = model_list
-                    exit()
                     model_list = self.models_to_protection_factors(model_list)
                     #print(score, model_list, ml1)
                 models.append((score, model_list)) 
@@ -514,7 +549,7 @@ class ParseOutputFile(object):
         if type(models[0]) != list:
             models = [models]
 
-        output = []
+        protection_factor_models = []
 
         for m in models:
             pf_model = []
@@ -524,10 +559,10 @@ class ParseOutputFile(object):
                     pf_model.append(float(self.pf_grids[res+1][m[res]-1]))
                 else:
                     pf_model.append(numpy.nan)
-            output.append(pf_model)
+            protection_factor_models.append(pf_model)
             #print("MOD:", m[38:45])
             #print("PF:",pf_model[38:45])
-        return output
+        return protection_factor_models
 
     def get_sectors(self):
         # returns the list of sectors
@@ -562,14 +597,6 @@ class ParseOutputFile(object):
                     out_model[i+offset] = sort_model[i + len(idx_zero)-offset]
                 out_model[idx_nonzero[i] - 1 + s[0]] = sort_model[i + len(idx_zero)]
         return out_model.astype(int)
-
-    def sort_models(self):
-        pass
-
-
-    def generate_pf_probability_file(self, num_best_scoring_nmodels):
-        bsm = self.get_best_scoring_models(num_best_scoring_models, return_pf=True)
-        return 0
 
     def calculate_random_sample_convergence(self, replicates=100, pct_values=10):
         """ 
