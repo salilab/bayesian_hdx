@@ -270,12 +270,12 @@ class Convergence(object):
         return sampling_precision,pval_converged,cramersv_converged,percent_converged
 
 class ParseOutputFile(object):
-    def __init__(self, output_file, state_name):
+    def __init__(self, output_file):
         self.output_file = output_file
-        self.state_name = state_name
         self.datafiles = []
         self.datasets=[]
         self.sectors = []
+        self.models=[]
         self.pf_grids = {}
         self.observed_residues = []
         self.parse_header()
@@ -286,7 +286,7 @@ class ParseOutputFile(object):
         Function that parses the header of output files.
         Stores the logk grid, along with other experimental information
         '''
-        f = open(self.output_file)
+        f = open(self.output_file, "r")
         for line in f.readlines():
             
             # > means model data (so header is over.)
@@ -325,6 +325,7 @@ class ParseOutputFile(object):
 
             elif line.split(":")[0].strip() == "Molecule_Name":
                 self.molecule_name = line.split(":")[1].strip()
+        f.close()
 
     def cluster_models_kmeans(self, nmodels, nclust):
         # Uses kmeans to cluster models
@@ -338,12 +339,11 @@ class ParseOutputFile(object):
         for i in range(nclust):
             unique, counts = numpy.unique(kmeans.labels_, return_counts=True)
             print(nclust, " | ", i, dict(zip(unique, counts))[i] *1.0/nmodels)
-
+        '''
         for c in range(len(kmeans.cluster_centers_)):
             for i in range(c,len(kmeans.cluster_centers_)):
                 print(i, c, numpy.linalg.norm(kmeans.cluster_centers_[c]-kmeans.cluster_centers_[i]))
-        print("###")
-
+        '''
 
     def get_datasets(self):
         if len(self.datasets) == 0:
@@ -353,7 +353,6 @@ class ParseOutputFile(object):
     def generate_datasets(self):
         self.datasets=[]
         for f in self.datafiles:
-            print(self.path, f[0])
             self.datasets.append(hxio.import_json(self.path+f[0]))
 
     def get_all_models(self, return_pf=False):
@@ -559,17 +558,72 @@ class ParseOutputFile(object):
 
 class OutputAnalysis(object):
     '''
-    Class that:
-        * Analyzes an output file(s)
-        * Produces set of standard graphs
+    Class that takes a list of output files for a single state and:
+        * Concatenates all models into two ParseOutput objects
+
+        * Runs Convergence
+        * Runs Precision
         * Outputs a file with Pf probability distributions
     '''
-    def __init__(self, output):
-        self.output = output
+    def __init__(self, output_files, analysis_output="analysis"):
+        self.output_files = output_files
+        self.output_directory = analysis_output # directory to place this analysis
+        self.pof1, self.pof2 = self.split_into_two_POFs()
+
+    def split_into_two_POFs(self):
+        '''
+        Loop through the list of self.output_files and return two POF objects,
+        each containing half of the models of interest
+        '''
+        import random
+        # Split list of output files into two sets
+
+        n_output_files = range(len(self.output_files))
+        random.shuffle(n_output_files)
+
+        pof1 = ParseOutputFile(self.output_files[n_output_files[0]])
+        for i in n_output_files[1:len(n_output_files)/2]:
+            new_pof = ParseOutputFile(self.output_files[n_output_files[i]])
+            concatenate_pofs(pof1, new_pof)
+
+        pof2 = ParseOutputFile(self.output_files[n_output_files[len(n_output_files)/2]])
+        for i in n_output_files[len(n_output_files)/2+1:]:
+            new_pof = ParseOutputFile(self.output_files[n_output_files[i]])
+            concatenate_pofs(pof2, new_pof)
+
+        return pof1, pof2
+
+    def get_all_scores(self):
+        # Plot the scores for all the models
+        all_models = self.pof1.models + self.pof2.models
+
+        scores = [mod[0] for mod in all_models]
+
+        return numpy.sort(scores)
 
 
-    def parse_output_files(self):
-        pass
+
+
+def concatenate_pofs(pof1, pof2):
+    '''
+    Function that concatenates the models and output_files from a list of pofs into pof1.
+
+    Returns pof1
+    '''
+    if len(pof1.models)==0:
+        all_models = pof1.get_all_models()
+    else:
+        all_models = pof1.models
+
+    if len(pof2.models)==0:
+        all_models += pof2.get_all_models()
+    else:
+        all_models += pof2.models
+
+    pof1.models = all_models
+
+    return pof1
+
 
 
 def get_best_scoring_models(modelfile, scorefile, num_best_models=100, prefix=None, write_file=True):
