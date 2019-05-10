@@ -17,7 +17,7 @@ from matplotlib import *
 
 class Convergence(object):
     '''
-    Given two ParseOutputFile classes, 
+    Given two ParseOutputFile classes,
     allow testing of various convergence and clustering metrics
     '''
     def __init__(self, parse_output1, parse_output2):
@@ -49,15 +49,15 @@ class ParseOutputFile(object):
         '''
         f = open(self.output_file)
         for line in f.readlines():
-            
+
             # > means model data (so header is over.)
             if line[0]==">":
                 break
-            
+
             # #-symbol meas datasets
             elif line[0:2]=="# ":
                 self.datafiles.append( (line[2:].split("|")[0].strip(), float(line[2:].split("|")[1].strip())) )
-            
+
             # @-symbol means sectors
             elif line[0:2]=="@ ":
                 for s_string in line[2:].strip().split("|"):
@@ -99,7 +99,7 @@ class ParseOutputFile(object):
 
     def get_best_scoring_models(self, N, sigmas=False, return_pf=False):
         ''' Get the N best scoring models from the output file
-        Returns a list of tuples of best_scoring_models 
+        Returns a list of tuples of best_scoring_models
             [(score, [model])]
         and (if sigmas=True)
         a grid of the timepoint sigma values.
@@ -131,7 +131,7 @@ class ParseOutputFile(object):
 
 
     def models_to_protection_factors(self, models):
-        # Input a list of list of integers.  
+        # Input a list of list of integers.
         # CHECK THAT THE MODEL SIZE IS CORRECT!
         if type(models[0]) != list:
             models = [models]
@@ -229,7 +229,7 @@ def sector_sort(sectors):
 
 def array_frequency(a):
     #input is numpy array
-    #output is list of 
+    #output is list of
     unique, inverse = numpy.unique(a, return_inverse=True)
     count=numpy.zeros(len(unique), numpy.int)
     numpy.add.at(count, inverse, 1)
@@ -245,7 +245,7 @@ def get_residue_rate_probabilities(modelfile, scorefile, sectors, seq, grid, num
 
     if hasattr(grid, '__iter__'):
         grid=len(grid)
-    
+
     best_models, best_scores=get_best_scoring_models(modelfile, scorefile, num_models, write_file=False)
 
     best_models=numpy.array(best_models)
@@ -268,7 +268,7 @@ def get_residue_rate_probabilities(modelfile, scorefile, sectors, seq, grid, num
 
 
 def get_convergence(state, num_points=None):
-    """ Takes all models in the exp_model of the given state and 
+    """ Takes all models in the exp_model of the given state and
     divides them into two halves.  The average and SD for each residue is computed
     for each ensemble and compared via a Two-sample Kolmogorov-Smirnov Test"""
     these_states=model.states
@@ -297,9 +297,9 @@ def get_cdf(exp_models):
     A=numpy.array(exp_models)
     y=numpy.linspace(1./len(exp_models),1,len(exp_models))
     print(len(exp_models[0]))
-    for i in range(len(exp_models[0])): 
-        counts, edges = numpy.histogram(A[:,i], len(A), range=(-6,0), density=False) 
-        #print i,A[:,i],counts,numpy.cumsum(counts*1.0/len(A)) 
+    for i in range(len(exp_models[0])):
+        counts, edges = numpy.histogram(A[:,i], len(A), range=(-6,0), density=False)
+        #print i,A[:,i],counts,numpy.cumsum(counts*1.0/len(A))
         exp_model_edf[:,i]=numpy.cumsum(counts*1.0/len(A))
     return exp_model_edf
 
@@ -311,7 +311,7 @@ def get_chisq(exp_models1, exp_models2, nbins):
     print(len(exp_models1[0]))
     for i in range(269,len(exp_models1[0])):
         meanA = numpy.mean(A[:,i])
-        ssd = numpy.std(A[:,i])**2 + numpy.std(B[:,i])**2 
+        ssd = numpy.std(A[:,i])**2 + numpy.std(B[:,i])**2
         sstdev = numpy.sqrt( ssd / 5000 )
         meanB = numpy.mean(B[:,i])
         t = 1.96
@@ -330,7 +330,7 @@ def get_chisq(exp_models1, exp_models2, nbins):
 
 
 def calculate_ks_statistic(edf1, edf2):
-    """ Takes a two edfs and returns a vector of the Kolmogorov-Smirnov 
+    """ Takes a two edfs and returns a vector of the Kolmogorov-Smirnov
     statistic for each residue"""
     maxdiff=numpy.zeros(len(edf1[0]))
     threshold=1.98*numpy.sqrt(1.0*(len(edf1)+len(edf2))/(1.0*len(edf1)*len(edf2)))

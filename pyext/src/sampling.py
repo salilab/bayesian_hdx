@@ -78,7 +78,7 @@ class SampledFloat(object):
             #print(self.upper_bound, self.lower_bound)
             while new_value >= self.upper_bound or new_value <= self.lower_bound:
                 sign = numpy.random.randint(0,2) * 2 - 1
-                magnitude = numpy.random.rand() * self.maxdel 
+                magnitude = numpy.random.rand() * self.maxdel
                 new_value = previous + sign * magnitude
             #print("PROPOSE_MOVE:", new_value, previous, sign, magnitude, self.upper_bound, self.lower_bound)
             return new_value
@@ -103,7 +103,7 @@ class MCSampler(object):
     def __init__(self, sys, initialize=True, sigma_sample_level=None):
         # Ensure that all states in system has a dataset and a model and a scoring function
         '''
-        @param sigma_sample_level - None: Don't sample sigmas. "dataset": sample one sigma per dataset. 
+        @param sigma_sample_level - None: Don't sample sigmas. "dataset": sample one sigma per dataset.
                             "peptide": 1 sigma per peptide, "timepoint": 1 sigma per timepoint
                             "replicate": 1 sigma per replicate_id
         '''
@@ -135,7 +135,7 @@ class MCSampler(object):
     def run_benchmark(self):
         import time
         '''Run 100 MC steps and report the time to run 1000 steps
-        '''       
+        '''
         times = []
         for i in range(10):
             start = time.time()
@@ -176,7 +176,7 @@ class MCSampler(object):
     def get_system_model_parameters(self, system):
         # The model parameters are the set of sectors and the system.output_model
         # representation for the exchange factors of these sectors.
-        # 
+        #
         output_model = system.output_model
         system.get_sectors()
 
@@ -204,7 +204,7 @@ class MCSampler(object):
                 '''
                 for r in s.get_residues():
                     oldval = state.output_model.get_model_residue(r)
-                    newval = self.residue_sampler.propose_move(oldval) 
+                    newval = self.residue_sampler.propose_move(oldval)
                     # Change the residue in the output_model (changes the PF as well)
                     state.output_model.change_residue(r, newval)
                     # Collect all
@@ -217,25 +217,25 @@ class MCSampler(object):
                 else:
 
                     #print("Whole Flip Accepted", oldscore, newscore, state.calculate_score(state.output_model.model), init_score)
-                    pass  
-                '''  
-                      
+                    pass
+                '''
+
             resis = state.observed_residues
             shuffle(resis)
             flips = len(resis)
             init_model = deepcopy(state.output_model.model)
             for r in resis:
-                # Get the sector that holds this residue           
+                # Get the sector that holds this residue
                 r_sector = state.residue_sector_dictionary[r]
                 oldscore = r_sector.get_score()
                 oldval = int(state.output_model.get_model_residue(r))
-                newval = self.residue_sampler.propose_move(oldval) 
+                newval = self.residue_sampler.propose_move(oldval)
 
                 # First, change the residue in the model
                 state.output_model.change_residue(r, newval)
                 # Then, change the deuteration state of each timepoint
                 state.change_single_residue_incorporation(r, newval)
-                # Now, calculate the score again. 
+                # Now, calculate the score again.
                 newscore = state.calculate_peptides_score(r_sector.get_peptides(), state.output_model.model_protection_factors)
 
                 accept = metropolis_criteria(oldscore, newscore, temperature)
@@ -270,7 +270,7 @@ class MCSampler(object):
                 for i in pep.get_observable_residue_numbers():
                     if not math.isnan(mpf[i-1]) and mpf[i-1] != numpy.inf:
                         tot_mpf += mpf[i-1]
-                        num_mpf += 1 
+                        num_mpf += 1
 
                 #print(mpf)
 
@@ -324,7 +324,7 @@ class MCSampler(object):
                         #if new_sigma is not None:
                         #print(new_sigma, tp.get_sigma())
                         new_score = -1*math.log(state.scoring_function.experimental_sigma_prior(new_sigma, dataset.sigma_estimate))
-                        
+
                         for rep in tp.get_replicates():
                             new_score += state.scoring_function.replicate_score(tp_model_deut, rep.deut, new_sigma)
                         #print(init_score, new_score)
@@ -350,21 +350,21 @@ def benchmark(model, sample_sigma):
     print("This system will take about ", int(time), "+/-", int(sd*2) , " seconds per 1000 steps")
 
 
-def simulated_annealing(model, sigma, sample_sig=True, equil_steps=10000, annealing_steps=100, save_all=False, 
+def simulated_annealing(model, sigma, sample_sig=True, equil_steps=10000, annealing_steps=100, save_all=False,
                         outdir="./sampling_output/", outfile_prefix="", print_t=10, sample_sigma=False, noclobber=False):
 
     for temp in [20, 10, 5, 1]:
         do_mc_sampling(model, temp, sigma, NSTEPS=annealing_steps, sample_sigma=sample_sig, print_t=print_t,
                         save_results=save_all, outdir=outdir, outfile_prefix=outfile_prefix, noclobber=noclobber)
 
-    # Equilibrium run  
+    # Equilibrium run
     do_mc_sampling(model, 1.0, sigma, NSTEPS=equil_steps, sample_sigma=sample_sigma, print_t=print_t,
                         save_results=True, outdir=outdir, outfile_prefix=outfile_prefix, noclobber=noclobber)
 
 
 
 
-def do_mc_sampling(model, temp=1, sigma=5.0, error_model="gaussian", NSTEPS=100, save_results=False, 
+def do_mc_sampling(model, temp=1, sigma=5.0, error_model="gaussian", NSTEPS=100, save_results=False,
                     outdir="./", outfile_prefix="", sample_sigma=False, noclobber=True, print_t=10):
 
 
@@ -419,7 +419,7 @@ def do_mc_sampling(model, temp=1, sigma=5.0, error_model="gaussian", NSTEPS=100,
                 outfile3 = open(s.sigmafile, "ab")
                 numpy.savetxt( outfile3 , numpy.atleast_2d(sigs), "%f "*len(sigs))
                 outfile3.close()
-        if t%print_t == 0: 
+        if t%print_t == 0:
             string=""
             for i in range(len(step_scores)):
                 #print(i, model.states[i].state_name)
@@ -474,7 +474,7 @@ def exp_model_sector_MC_step(state,exp_model,frags,temp,sigma,error_model="trunc
                 continue
             else:
                 delta=numpy.random.random_integers(0,len(exp_model.exp_grid)-1)
-               
+
                 exp_model.exp_seq[resnum] = delta
                 new_sector_score = exp_model.calculate_bayesian_score(s.fragments,sigma,error_model)
                 randn = numpy.random.random_sample()
@@ -497,11 +497,11 @@ def exp_model_sector_MC_step(state,exp_model,frags,temp,sigma,error_model="trunc
 
                     #print(s.seq, resnum, "||", old, delta, "|FLIP|", delscore, flipped, "|", randn, numpy.exp(-(delscore)/0.01))
                 else:
-                    # If randn is higher than 
+                    # If randn is higher than
 
                     exp_model.exp_seq=deepcopy(seq0)
 
-    if sample_sigma==True: 
+    if sample_sigma==True:
 
         sample_individual_sigmas(exp_model, frags, temp)
         '''
@@ -528,7 +528,7 @@ def exp_model_sector_MC_step(state,exp_model,frags,temp,sigma,error_model="trunc
 
 def sample_individual_sigmas(exp_model, frags, temp):
     # For each timepoint for each fragment, propose a step to the sigma and recalculate
-    # the timepoint score.  
+    # the timepoint score.
 
     # Sigma must be greater than 0.1
 
@@ -567,7 +567,7 @@ def sample_individual_sigmas(exp_model, frags, temp):
 def enumerate_fragment(frag, exp_grid, sig, num_models = 1):
     """Enumerates and scores all possible models for the given an exp_grid
     returns the top num_models scoring exp grids"""
-    n = frag.num_observable_amides  
+    n = frag.num_observable_amides
     nbin = len(exp_grid)
     num = n
     possible_number_combinations = list(combinations_with_replacement(range(n), nbin))
@@ -594,4 +594,3 @@ def enumerate_fragment(frag, exp_grid, sig, num_models = 1):
 
     #print(numpy.array(minmodel), minscore)
     return numpy.array(minmodel)
-

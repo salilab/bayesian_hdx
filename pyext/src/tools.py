@@ -1,7 +1,7 @@
 """
    Useful tools for HDX and MS data analysis
 
-   Can be used as a standalone library outside of IMP 
+   Can be used as a standalone library outside of IMP
    and the RResolvedHX
 """
 
@@ -117,12 +117,12 @@ ElementMasses = {
     #
     # Data from https://www.ncsu.edu/chemistry/msf/pdf/IsotopicMass_NaturalAbundance.pdf
     #
-    # Original references: 
+    # Original references:
     # The isotopic mass data is from:
-    #   G. Audi, A. H. Wapstra Nucl. Phys A. 1993, 565, 1-65 
-    #   G. Audi, A. H. Wapstra Nucl. Phys A. 1995, 595, 409-480. 
+    #   G. Audi, A. H. Wapstra Nucl. Phys A. 1993, 565, 1-65
+    #   G. Audi, A. H. Wapstra Nucl. Phys A. 1995, 595, 409-480.
     # The percent natural abundance data is from the 1997 report of the IUPAC Subcommittee for Isotopic
-    #   Abundance Measurements by K.J.R. Rosman, P.D.P. Taylor Pure Appl. Chem. 1999, 71, 1593-1607. 
+    #   Abundance Measurements by K.J.R. Rosman, P.D.P. Taylor Pure Appl. Chem. 1999, 71, 1593-1607.
 
     "C" : [(12.000000, 98.93), (13.003355, 1.07)],
     "H" : [(1.007825, 99.9885), (2.14101, 0.0115)],
@@ -142,7 +142,7 @@ def calc_intrinsic_rate(Laa, Raa, pH, T, La2="A", Ra2="A", log=False):
     @param T - Temperature of the experiment
 
     Equation and constants derived from Bai, Englander (1980)
-    ''' 
+    '''
 
     if Raa=="P" or Raa=="CT" or Raa=="NT" or Laa=="NT":
         return 0
@@ -281,7 +281,7 @@ def get_residue_deuteration_at_each_timepoint(dataset, protection_factors):
                 deuterations.append(0)
             else:
 
-                log_kex = dataset.intrinsic[i] - protection_factors[i] 
+                log_kex = dataset.intrinsic[i] - protection_factors[i]
                 # Deuterium incorporation is scaled by the amount of deuterium in solution
                 deut = calculate_simple_deuterium_incorporation(log_kex, tp.time) * dataset.conditions.saturation
                 deuterations.append(deut)
@@ -336,7 +336,7 @@ def get_residue_peptide_deuteration_at_each_timepoint(sequence, peptides, protec
                 #if math.isnan(dataset.intrinsic[i-1]) or protection_factors[i-1] == numpy.inf or protection_factors[i-1] == -1 * numpy.inf:
                 #    p = 0
                 #else:
-                    log_kex = dataset.intrinsic[i-1] - protection_factors[i-1] 
+                    log_kex = dataset.intrinsic[i-1] - protection_factors[i-1]
                     # Deuterium incorporation is scaled by the amount of deuterium in solution
                     deut = calculate_simple_deuterium_incorporation(log_kex, tp.time) * dataset.conditions.saturation
                     #print(i, dataset.intrinsic[i-1], protection_factors[i-1], log_kex, deut)
@@ -372,13 +372,13 @@ def calculate_deut(rate, time):
 
 def simulate_peptide_data(seq, start_res, exch_rates, timepoints, replicates=3, obs_error=5, percentD=True):
     '''
-    For a list of exchange rates, calculate simulated data including 
+    For a list of exchange rates, calculate simulated data including
     gaussian noise at each timepoint.
     @param exch_rates - list of exchange rates for a set of contiguous residues
     @param timepoints - list of integer timepoints (in seconds)
     @param error - Standard deviation (in total D units)
 
-    Returns a list of lists of 2D incorporation values.  
+    Returns a list of lists of 2D incorporation values.
     '''
 
     peptide = system.Peptide(seq, start_res, start_res+len(seq))
@@ -414,4 +414,3 @@ def subsequence_consistency(sequence, subsequence, start_residue):
     #print(sequence, sequence[start_residue-1:start_residue-1+len(subsequence)])
     #print("DHSIUO", subsequence, start_residue, sequence)
     return sequence[start_residue-1:start_residue-1+len(subsequence)]==subsequence
-

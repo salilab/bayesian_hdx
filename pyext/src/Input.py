@@ -47,7 +47,7 @@ class Peptide(object):
         @param sequence - sequence of the peptide
         @param start_residue - starting residue of the peptide
         @param peptide_id - a unique peptide ID
-        @param sigma - an error 
+        @param sigma - an error
 
     """
     def __init__(self, sequence, start_residue, peptide_id, sigma=1.0, charge_state=None, retention_time=None, pH=7.0, temp=283):
@@ -123,10 +123,10 @@ class Peptide(object):
         for tp in self.timepoints:
             tp.calc_model_deut(freq_grid, exp_grid, self.num_observable_amides)
             score += tp.calculate_tp_score(grid, exp_grid, sig, self.num_observable_amides, force_calc=True)
-        return score        
+        return score
 
     def calculate_peptide_score(self, grid, exp_grid, sig, save=False, force=False):
-        score = 0     
+        score = 0
         for tp in self.timepoints:
             tp.calc_model_deut(grid, exp_grid, self.num_observable_amides)
             score += tp.calculate_tp_score(grid, exp_grid, sig, self.num_observable_amides, force_calc=True)
@@ -136,7 +136,7 @@ class Peptide(object):
         if sigma = None:
             sigma = self.sigma
         for tp in self.timepoints:
-            tp.sigma = sigma 
+            tp.sigma = sigma
 
     def get_peptides(self):
         return self.peptides
@@ -147,7 +147,7 @@ class Dataset(object):
     Requires a Macromolecule object
     Consists of a list of Fragments with associated timepoints, along with experimental parameters
     Can contain a perturbation
-    """   
+    """
 
     def __init__(self, state, conditions):
         self.state = state
@@ -201,7 +201,7 @@ class Dataset(object):
         if peptide_id is None:
             peptide_id = str(len(self.peptides))
         new_peptide = Peptide(seq, start_residue, peptide_id, sigma, charge_state, retention_time)
-        if self.peptide_sequence_consistency(new_peptide): 
+        if self.peptide_sequence_consistency(new_peptide):
             self.peptides.append(new_peptide)
             new_peptide.set_state(state)
             return new_peptide
@@ -304,7 +304,7 @@ class HDXWorkbench(object):
                                 print("Fragment ", frag_seq, "created for state", s.state_name)
                             else:
                                 print("Skipping this fragment")
-                        else:  #if it is not, 
+                        else:  #if it is not,
                             state_frag=next((f for f in s.frags if f.seq==frag_seq and f.start_res==start_res), None)
                             #print "State not created", s.state_name, "created for fragment", frag_seq
                    # elif state_frag==None:
@@ -368,7 +368,7 @@ class HDXWorkbench(object):
             #If not, add a new timepoint at this time.
             if new_timepoint==True:
                 tp=frag.add_timepoint(time)
- 
+
             # add the deuteration value.
             # Any other replicate information from the file should be added at this step.
             tp.add_replicate(deut)#, temp=self.temp, sat=self.theta, recovery=self.recovery)
@@ -376,13 +376,13 @@ class HDXWorkbench(object):
             if empirical_sig==True and len(tp.replicates) > 2:
                 avg, sd = tp.get_avg_sd()
                 #print(len(tp.replicates), sd)
-                tp.sig = sd          
+                tp.sig = sd
             else:
                 tp.sig = default_sig
 
 class HDXColumns(object):
     '''
-    Class for inputting HDX data from a simple file for a single state 
+    Class for inputting HDX data from a simple file for a single state
     Takes as input a file with columns:
     # peptide_seq, start_res, end_res, time, D_inc
     '''
@@ -415,7 +415,7 @@ class HDXColumns(object):
                     print("Fragment", frag_seq, "created for state", s.state_name)
                 else:
                     print("Skipping this fragment")
-            else:  #if it is not, 
+            else:  #if it is not,
                 state_frag=next((f for f in s.frags if f.seq==frag_seq and f.start_res==start_res), None)
 
             # If this is not percentD, we want to divide D incorporation by number of amides in fragment
@@ -442,7 +442,7 @@ class HDXColumns(object):
             #If not, add a new timepoint at this time.
             if new_timepoint==True:
                 tp=frag.add_timepoint(time)
- 
+
             # add the deuteration value.
             # Any other replicate information from the file should be added at this step.
             tp.add_replicate(deut)#, temp=self.temp, sat=self.theta, recovery=self.recovery)
@@ -485,9 +485,3 @@ class OutputFile(object):
             for l in self.output_file.readlines():
                 models+=l
             self.models = numpy.genfromtxt(models)
-
-
-
-
-
-

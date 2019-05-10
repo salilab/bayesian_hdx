@@ -37,9 +37,9 @@ class Dataset(object):
     Requires a Macromolecule object and can create a state object
     Consists of a list of Peptides with associated timepoints, along with experimental parameters
     Intrinsic rates are calculated and stored here
-    """   
+    """
 
-    def __init__(self, name, conditions, sequence, input_file=None, error_estimate=5.0, 
+    def __init__(self, name, conditions, sequence, input_file=None, error_estimate=5.0,
                     offset=1, number_fast_exchanging_amides=2, percent_deuterium=False):
         self.raw_data_file = input_file
         self.conditions = conditions
@@ -106,9 +106,9 @@ class Dataset(object):
         return sd / float(total_tps)
 
     def calculate_observable_rate_bounds(self, threshold = 0.01):
-        # The first and last timepoints define a range of 
+        # The first and last timepoints define a range of
         # observable exchange rates.
-        # These are calculated as those that are only contribute 1% at 
+        # These are calculated as those that are only contribute 1% at
         # each extreme. (or to a user defined threshold)
         if threshold >= 0.5:
             raise Exception("Dataset.get_observable_rate_bounds: Threshold must be < 0.5 and ideally < 0.1")
@@ -216,9 +216,9 @@ class Dataset(object):
         '''
         if peptide_id is None:
             peptide_id = str(len(self.peptides))
-        new_peptide = Peptide(self, sequence, start_residue, peptide_id, 
-                        sigma=sigma, 
-                        charge_state=charge_state, 
+        new_peptide = Peptide(self, sequence, start_residue, peptide_id,
+                        sigma=sigma,
+                        charge_state=charge_state,
                         retention_time=retention_time)
         return self.add_peptide(new_peptide)
 
@@ -314,7 +314,7 @@ class Peptide(object):
         @param sequence - sequence of the peptide
         @param start_residue - starting residue of the peptide
         @param peptide_id - a unique peptide ID
-        @param sigma - an error 
+        @param sigma - an error
 
     """
     def __init__(self, dataset, sequence, start_residue, peptide_id, charge_state=None, sigma=5.0, retention_time=None):
@@ -380,7 +380,7 @@ class Peptide(object):
                 orns2.append(prn+self.start_residue)
 
         if len(orns2) != self.num_observable_amides:
-            raise Exception("Peptide.get_observable_residue_numbers: Something is wrong with this calculation") 
+            raise Exception("Peptide.get_observable_residue_numbers: Something is wrong with this calculation")
         return orns2
 
     def get_id(self):
@@ -444,10 +444,10 @@ class Peptide(object):
         for tp in self.timepoints:
             tp.calc_model_deut(freq_grid, exp_grid, self.num_observable_amides)
             score += tp.calculate_tp_score(grid, exp_grid, sig, self.num_observable_amides, force_calc=True)
-        return score        
+        return score
 
     def calculate_score(self, grid, exp_grid, sig, save=False, force=False):
-        score = 0     
+        score = 0
         for tp in self.timepoints:
             tp.calc_model_deut(grid, exp_grid, self.num_observable_amides)
             score += tp.calculate_tp_score(grid, exp_grid, sig, self.num_observable_amides, force_calc=True)
@@ -457,7 +457,7 @@ class Peptide(object):
         if sigma == None:
             sigma = self.sigma
         for tp in self.timepoints:
-            tp.sigma = sigma 
+            tp.sigma = sigma
 
     def calculate_average_deuteration(self):
         # Calculates the average deuteration of the peptide over all timepoints
@@ -483,7 +483,7 @@ class Timepoint(object):
     def __init__(self, time, sigma0):
         '''
         @param time - Time in seconds
-        @param sigma0 - Initial estimate of timepoint error sigma in pctD units. 
+        @param sigma0 - Initial estimate of timepoint error sigma in pctD units.
         '''
         self.time = time
         self.models = []

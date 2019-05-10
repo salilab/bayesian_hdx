@@ -11,7 +11,7 @@ class Timepoint(object):
     def __init__(self, time, sigma0=5.0):
         '''
         @param time - Time in seconds
-        @param sigma0 - Initial estimate of timepoint error sigma in pctD units. 
+        @param sigma0 - Initial estimate of timepoint error sigma in pctD units.
         '''
         self.time = time
         self.models = []
@@ -32,7 +32,7 @@ class Timepoint(object):
             if force_calc:
                 self.calc_model_deut(freq_grid, exp_grid, num_amides)
                 rep_score = r.calculate_replicate_score(self.model_deut, sig)
-            else:               
+            else:
                 try:
                     rep_score = r.calculate_replicate_score(self.model_deut, sig)
                 except:
@@ -41,7 +41,7 @@ class Timepoint(object):
 
             # This if statement prevents log overflows when score ~0
             if r.calculate_replicate_score(self.model_deut, sig) == 0.0:
-                score += 10000 
+                score += 10000
             else:
                 score += -1.0*numpy.log(rep_score)
         return score / len(self.replicates)
@@ -49,7 +49,7 @@ class Timepoint(object):
 
     def calc_model_deut(self, freq_grid, exp_grid, num_amides):
         # Given an exp_frequency grid and the exp_grid, calculate the deuteration of the model
-        # at this timepoint. 
+        # at this timepoint.
         deut=0
         for n in range(len(exp_grid)):
             #print(n, freq_grid)
@@ -117,7 +117,7 @@ class Timepoint(object):
 
     def set_sigma(self, sigma):
         '''
-        @param sigma - float to set timepoint sigma; or "exp_sd" to use SD from 
+        @param sigma - float to set timepoint sigma; or "exp_sd" to use SD from
              experimental data.
         '''
         if sigma=="exp_sd":

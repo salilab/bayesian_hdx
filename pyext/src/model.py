@@ -23,8 +23,8 @@ from random import randint
 
 
 class ResidueGridModel(object):
-    ''' 
-    Models the system as individual residues with protection factors along a grid 
+    '''
+    Models the system as individual residues with protection factors along a grid
     Defined by a grid_size and the parameters of the datasets included in the state
 
     Calculates the grid of observable protection factors
@@ -89,7 +89,7 @@ class ResidueGridModel(object):
         #for i in range(self.length):
         #    print(i, pf_grids[i], model[i], len(pf_grids), self.length)
         #    self.model_protection_factors.append(pf_grids[i][int(model[i])])
-        
+
         self.model_protection_factors = [pf_grids[i][int(model[i]-1)] for i in range(self.length)]
         return self.model_protection_factors
 
@@ -118,7 +118,7 @@ class ResidueGridModel(object):
         for n in range(self.length):
             pf_ranges = [pf[n] for pf in observable_pfs]
             #print("II", pf_ranges, max([pf[1] for pf in pf_ranges]), min([pf[0] for pf in pf_ranges]), self.grid_size)
-            #pf_grid = numpy.linspace(min([pf[1] for pf in pf_ranges]), max([pf[0] for pf in pf_ranges]), self.grid_size ) 
+            #pf_grid = numpy.linspace(min([pf[1] for pf in pf_ranges]), max([pf[0] for pf in pf_ranges]), self.grid_size )
             pf_grid = numpy.linspace( 0, 10, self.grid_size )
             pf_grids.append(pf_grid)
 
@@ -178,7 +178,7 @@ class MultiExponentialModel(object):
         which contain experimental data.
     """
 
-    def __init__(self, model, state, frags=None, sigma=10.0, num_exp_bins=10, init="enumerate", 
+    def __init__(self, model, state, frags=None, sigma=10.0, num_exp_bins=10, init="enumerate",
                  error_model="gaussian", output_directory=None, noclobber=True, first_tp=10, last_tp=3600, marginalize=False):
         if frags is None:
             self.frags=state.frags
@@ -214,8 +214,8 @@ class MultiExponentialModel(object):
         self.noclobber=noclobber
         self.marginalize=marginalize
 
-        # These grids contain the values at which the integral of sigma is 
-        # computed 
+        # These grids contain the values at which the integral of sigma is
+        # computed
         self.sigma0_grid=numpy.linspace(0.1,10,100) #stdev between 0.01 and 0.5
         self.omega_grid=numpy.linspace(1,100,100) #stdev between 0.01 and 0.5
         self.fmod_grid=numpy.linspace(0,100,101) #fmod between 0.00 and 1.00
@@ -302,11 +302,11 @@ class MultiExponentialModel(object):
                         #delfmod=tp.replicates[n].deut-model_deut
                         #sig=100.*tp.get_sigma()/f.num_observable_amides
 
-                        #fe=self.get_nearest_value(tp.replicates[n].deut, self.fexp_grid)   
-                        fe = tp.replicates[n].get_nearest_gridpoint(self.fexp_grid) 
+                        #fe=self.get_nearest_value(tp.replicates[n].deut, self.fexp_grid)
+                        fe = tp.replicates[n].get_nearest_gridpoint(self.fexp_grid)
 
                         replicate_score=self.prob_grid[j,fm,fe]
-                        
+
                     else:
                         if error_model=="gaussian":
                             replicate_score = self.gaussian_model(tp.replicates[n].deut, model_deut, sigma)
@@ -354,7 +354,7 @@ class MultiExponentialModel(object):
         for f in frags:
             f.exp_vals = sampling.enumerate_fragment(f, exp_grid, 2.0, num_models = 1)
             print(f.seq, f.exp_vals)
-        print("Calculating overlaps and casting to gridsize", len(self.exp_grid))  
+        print("Calculating overlaps and casting to gridsize", len(self.exp_grid))
         sectors = self.state.get_sectors(frags)
         # sort sectors by size
         sectors.sort(key=lambda x: x.num_amides, reverse=True)
@@ -373,12 +373,12 @@ class MultiExponentialModel(object):
                 # Make an array of all sector fragment exp_grid vals
                 # Overlap is the minimum value for each field
                 # How to deal with the rest?  High to low or low to high?
-                # Three possibilities:   
-                #    * Equal - assign overlap to each amide.  Location doesn't matter 
+                # Three possibilities:
+                #    * Equal - assign overlap to each amide.  Location doesn't matter
                 #    * sum(overlap) > len(seq) - take (random?) subset of overlap and assign to sequence
                 #    * sum(overlap) < len(seq) - Assign overlap to sequence. Find closest non-overlapping values
 
-                all_exp_vals = [] #numpy.zeros((len(frags),len(self.exp_grid)))              
+                all_exp_vals = [] #numpy.zeros((len(frags),len(self.exp_grid)))
                 for f in sector_frags:
                     all_exp_vals.append(f.exp_vals)
 
@@ -392,7 +392,7 @@ class MultiExponentialModel(object):
                     #print("Overlap = num_amides", s.seq, overlap, s.start_res)
                     for f in sector_frags:
                         f.exp_vals = deepcopy(f.exp_vals) - overlap
-            
+
                     #print(exp_seq[s.start_res:s.end_res+1])
                 #------------------
                 # For more overlap values than amides:
@@ -410,30 +410,30 @@ class MultiExponentialModel(object):
                             overlap[picked_val] -= 1
                             i+=1
                     #print("Overlap > num_amides", s.seq, overlap, overlap_sub, s.start_res)
-                    
+
                     sector_exp_vals = overlap_sub
 
                     for f in sector_frags:
-                        f.exp_vals = deepcopy(f.exp_vals) - overlap_sub   
+                        f.exp_vals = deepcopy(f.exp_vals) - overlap_sub
 
                 #------------------
                 # For fewer overlap values than amides:
                 #   - assign overlap
                 #   - start from smallest fragment and assign values until you hit n_remaining
-                #------------------ 
-                else:  
+                #------------------
+                else:
                     method = "Overlap < num_amides"
                     overlap_sub = numpy.zeros(len(overlap)).astype(int)
-                    n_remaining = s.num_amides - numpy.sum(overlap) 
+                    n_remaining = s.num_amides - numpy.sum(overlap)
                     for f in sector_frags:
                         f.exp_vals = deepcopy(f.exp_vals) - overlap
 
-                    #sort frags from smallest to largest               
-                    sector_frags.sort(key=lambda x: x.num_observable_amides) 
+                    #sort frags from smallest to largest
+                    sector_frags.sort(key=lambda x: x.num_observable_amides)
                     #print("***Overlap < num_amides", s.seq, s.num_amides - sum(overlap), overlap, sector_frags[0].exp_vals, s.start_res)
                     i=1
                     #randomly pick value from smallest fragment
-                    while i <= n_remaining:               
+                    while i <= n_remaining:
                         picked_val = randint(0,len(overlap)-1)
                         if sector_frags[0].exp_vals[picked_val] != 0:
                             overlap_sub[picked_val] += 1
@@ -441,7 +441,7 @@ class MultiExponentialModel(object):
                             #print(i, n_remaining, picked_val, overlap_sub, sector_frags[0].exp_vals)
                             i = i+1
                     sector_exp_vals = overlap + overlap_sub
-                    
+
                     # For each other frag, delete exp_vals closest to overlap_sub
                     for f in sector_frags[1:-1]:
                         nonzero_elements=f.exp_vals.nonzero()[0]
@@ -471,17 +471,17 @@ class MultiExponentialModel(object):
                 print("Method:", method)
                 sys.exit(1)
 
-                              
+
             # cast exp_grid to self.exp_grid for each sector
             long_sector_exp_vals=numpy.zeros(len(self.exp_grid)).astype(int)
             # first and last are identical for each.
             long_sector_exp_vals[0]=sector_exp_vals[0]
             long_sector_exp_vals[-1]=sector_exp_vals[-1]
 
-            #Cast middle values    
+            #Cast middle values
 
             #something is wrong with these indicies...need to fix. long_sector -1 is getting overwritten
-            factor = float(len(sector_exp_vals))/(float(len(long_sector_exp_vals))) 
+            factor = float(len(sector_exp_vals))/(float(len(long_sector_exp_vals)))
 
             for i in range(1,len(sector_exp_vals)-1):
                 for j in range(1,len(long_sector_exp_vals)-1):
@@ -520,7 +520,7 @@ class MultiExponentialModel(object):
 
         self.exp_seq = exp_seq
         return exp_seq
-                    
+
 
                 #print("Fragment Amides:",s.num_amides,"Overlap:",overlap, "Diff:" , s.num_amides - numpy.sum(overlap), s.seq)
 
@@ -529,16 +529,16 @@ class MultiExponentialModel(object):
     def calc_overlap_score(self, seq):
         coverage = self.state.get_coverage(self.frags)
         seclist = self.state.get_sectors().sort
-        sorted_sec = 
+        sorted_sec =
 
             if coverage == 0 or self.state.seq[n] == 'P':
                 seq[n] = 0
             else
                 for f in self.frags:
                     if n > f.start_res + 2 and n < f.end_res:
-                    
-    '''   
-        
+
+    '''
+
 
     def get_sigma(self, inval, sig):
         return inval*sig+0.05
@@ -560,8 +560,8 @@ class MultiExponentialModel(object):
 
         if num_bins < 2:
             raise Exception("get_exp_bins: num_bins must be greater than 1" )
-        # slow_exp_val should satisfy 0.99 = exp(-10**slowest_rate_bin*first_time_point) 
-        # fast_exp_val should satisfy 0.01 = exp(-10**fastest_rate_bin*last_time_point) 
+        # slow_exp_val should satisfy 0.99 = exp(-10**slowest_rate_bin*first_time_point)
+        # fast_exp_val should satisfy 0.01 = exp(-10**fastest_rate_bin*last_time_point)
 
         if first_time_point == 0.0:
             first_time_point = 1.0
@@ -733,7 +733,7 @@ class MultiExponentialModel(object):
             return
         if frags is None:
             frags=self.frags
-            
+
         self.model_scores=[]
         for m in self.exp_models:
             self.exp_seq=deepcopy(m)
@@ -745,10 +745,10 @@ class MultiExponentialModel(object):
         try:
             data=open(scorefile,"r")
             for line in data:
-                self.scores.append(line.split().strip()) 
+                self.scores.append(line.split().strip())
         except:
             for i in scorefile:
-                self.scores.append(i)  
+                self.scores.append(i)
 
     def get_sigma_score(self,sigma0,sig):
         return (2*sigma0/ (numpy.sqrt(numpy.pi) * sig**2 ))*numpy.exp(-sigma0**2 /sig**2)
@@ -764,12 +764,12 @@ class MultiExponentialModel(object):
 
     def unimodal_prior(self, omj, sigma0=0.1):
         return (2.0 * omj / ( numpy.sqrt(numpy.pi) * omj**2 )) * numpy.exp(-sigma0**2 / omj**2)
-        
+
     def get_nearest_value(self, value, array):
         '''
         Given a value and 1D numpy array, return the index of the closest value
         '''
-        return (numpy.abs(array-value)).argmin(), 
+        return (numpy.abs(array-value)).argmin(),
 
     def calculate_marginal_probabilities(self, error_model="truncated_gaussian"):
         # Calculates marginal probabilities given grids of omega, sigma0, fmod, and fexp
@@ -794,7 +794,7 @@ class MultiExponentialModel(object):
                         priorjm1 = self.unimodal_prior(omjm1, sigma0)
                         dom=omj-omjm1
 
-                        
+
                         if error_model=="truncated_gaussian":
                             # If we are using the truncated gaussian, calculate those pre-factors
                             # use the truncated gaussian factors at -0.1 and 1.2
@@ -823,7 +823,7 @@ class MultiExponentialModel(object):
         @param delfmod - difference between forward model and noise model in delta pct-D
                         units to normalize for fragment length (num amides)
         @param sigma0 - Estimated standard deviation of the instrument in pct-D units
-        
+
         '''
         self.prob_grid=numpy.zeros( (len(self.fmod_grid), len(self.fexp_grid)) )
 
@@ -865,7 +865,3 @@ class MultiExponentialModel(object):
                 self.prob_grid[fm,f]=-1.0 * numpy.log(cumul)
         #print "OMEGA: ",fexp,fmod,omega0,cumul,cumul2,cumul2/cumul
         return self.prob_grid
-
-
-
-

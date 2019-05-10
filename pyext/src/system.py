@@ -34,7 +34,7 @@ class System(object):
         """ add a Macromolecule to the experiment. Sequence can either be
         a string or a filename.
         @param sequence - FASTA string OR filepath
-        @param name - name for FASTA string OR list of fasta IDs in fastafile 
+        @param name - name for FASTA string OR list of fasta IDs in fastafile
             (first word after '>' up until separator ' ', ':', ';')
         """
 
@@ -44,7 +44,7 @@ class System(object):
 
         # if there is a period, then we will assume that it is a filepath
         if "." in sequence:
-            try: 
+            try:
                 open(sequence, "r")
                 seqs = io.read_fasta(sequence)
             except:
@@ -62,10 +62,10 @@ class System(object):
         return self.macromolecules[-1]
 
     def get_macromolecules(self):
-        return self.macromolecules 
+        return self.macromolecules
 
     def get_output(self):
-        return self.output  
+        return self.output
 
     def initialize_output(self):
         for m in self.macromolecules:
@@ -117,8 +117,8 @@ class Macromolecule(object):
 class HDXModel(object):
     '''
      Top-level HDX hierarchy representing a single macromolecular system
-        
-    HDXModel has (multiple) child objects HDXState, each representing different 
+
+    HDXModel has (multiple) child objects HDXState, each representing different
     macromolecular states
     '''
     def __init__(self, name, inseq, offset, number_of_back_exchanged_amides=2):
@@ -167,7 +167,7 @@ class State(object):
     A perturbation could be a small molecule
     a point mutation or a new complex
     """
-    def __init__(self, mol, name, perturbations=None, 
+    def __init__(self, mol, name, perturbations=None,
                     output_model=None,
                     scoring_function=GaussianNoiseModel()):
         self.name = name
@@ -239,7 +239,7 @@ class State(object):
 
     def peptide_sequence_consistency(self, peptide):
         '''
-        Returns True if peptide sequence and start residue aligns 
+        Returns True if peptide sequence and start residue aligns
         with macromolecule sequence
 
         Returns False with a warning if there is an inconsistency
@@ -260,7 +260,7 @@ class State(object):
 
     def get_coverage(self, peptides=None):
         '''
-        Given a list of peptides, returns a vector of length 
+        Given a list of peptides, returns a vector of length
         len(seq) containing the per-residue coverage,
         defined as the number of times residue n
         is observed in the set of HDX fragments
@@ -271,7 +271,7 @@ class State(object):
         if len(peptides)==0:
             print("No peptides imported into this state:", self.state_name)
 
-        #initialize to zero coverage for 
+        #initialize to zero coverage for
         self.coverage = numpy.zeros(len(self.sequence))
 
         for n in range(len(self.sequence)):
@@ -392,7 +392,7 @@ class State(object):
             d.sum_residue_incorporations(self.residue_incorporations[d])
 
     def change_single_residue_incorporation(self, residue_number, new_pf, change_tp_deut=True):
-        
+
         for d in self.data:
             delta = {}
             new_rate = d.intrinsic[residue_number-1] - self.output_model.pf_grids[residue_number-1][new_pf-1]
@@ -405,7 +405,7 @@ class State(object):
                 delta[time] = new_deut - old_deut
                 #print(residue_number, new_pf, self.output_model.pf_grids[residue_number-1][new_pf-1], time, new_deut, old_deut)
 
-            if change_tp_deut:   
+            if change_tp_deut:
                 for pep in d.get_peptides_with_residue(residue_number):
                     for tp in pep.get_timepoints():
                         tp.model_deuteration += delta[tp.time]
@@ -491,7 +491,7 @@ class State(object):
                 # Calculate a score for each replicate
                 for rep in tp.get_replicates():
                     #####
-                    replicate_likelihood = scoring_function.replicate_score(model=model_tp_deut, exp=rep.deut, sigma=tp.sigma) 
+                    replicate_likelihood = scoring_function.replicate_score(model=model_tp_deut, exp=rep.deut, sigma=tp.sigma)
                     #print(pep.sequence, tp.time, replicate_likelihood, tp.get_model_deuteration(), model_tp_deut, rep.deut, pep.get_number_of_observable_amides())
                     rep.set_score(-1*math.log(replicate_likelihood))
 
@@ -520,7 +520,7 @@ class State(object):
         return self.observed_residues
 
     def consolidate_model_to_sectors(self, model):
-        # Given a model, return a list of lists with 
+        # Given a model, return a list of lists with
         pass
 
 
@@ -552,7 +552,7 @@ class Sector(object):
         return amides
 
     def get_coverage(self):
-        return len(peptide_ids)  
+        return len(peptide_ids)
 
     def get_length(self):
         return self.length
@@ -592,7 +592,3 @@ def setup_single_state(sequence, name):
     sys = System()
     mol = sys.add_macromolecule(sequence, name)
     return mol.get_apo_state()
-
-
-
-

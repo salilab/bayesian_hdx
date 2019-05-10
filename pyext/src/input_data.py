@@ -72,7 +72,7 @@ class HDXWorkbench(object):
                                 print("Fragment ", frag_seq, "created for state", s.state_name)
                             else:
                                 print("Skipping this fragment")
-                        else:  #if it is not, 
+                        else:  #if it is not,
                             state_frag=next((f for f in s.frags if f.seq==frag_seq and f.start_res==start_res), None)
                             #print "State not created", s.state_name, "created for fragment", frag_seq
                    # elif state_frag==None:
@@ -133,7 +133,7 @@ class HDXWorkbench(object):
             #If not, add a new timepoint at this time.
             if new_timepoint==True:
                 tp=frag.add_timepoint(time)
- 
+
             # add the deuteration value.
             # Any other replicate information from the file should be added at this step.
             tp.add_replicate(deut)#, temp=self.temp, sat=self.theta, recovery=self.recovery)
@@ -141,13 +141,13 @@ class HDXWorkbench(object):
             if empirical_sig==True and len(tp.replicates) > 2:
                 avg, sd = tp.get_avg_sd()
                 #print(len(tp.replicates), sd)
-                tp.sig = sd          
+                tp.sig = sd
             else:
                 tp.sig = default_sig
 
 class HDXColumns(object):
     '''
-    Class for inputting HDX data from a simple file for a single state 
+    Class for inputting HDX data from a simple file for a single state
     Takes as input a file with columns:
     # peptide_seq, start_res, end_res, time, D_inc
     '''
@@ -180,7 +180,7 @@ class HDXColumns(object):
                     print("Fragment", frag_seq, "created for state", s.state_name)
                 else:
                     print("Skipping this fragment")
-            else:  #if it is not, 
+            else:  #if it is not,
                 state_frag=next((f for f in s.frags if f.seq==frag_seq and f.start_res==start_res), None)
 
             # If this is not percentD, we want to divide D incorporation by number of amides in fragment
@@ -207,7 +207,7 @@ class HDXColumns(object):
             #If not, add a new timepoint at this time.
             if new_timepoint==True:
                 tp=frag.add_timepoint(time)
- 
+
             # add the deuteration value.
             # Any other replicate information from the file should be added at this step.
             tp.add_replicate(deut)#, temp=self.temp, sat=self.theta, recovery=self.recovery)
@@ -222,6 +222,3 @@ class HDXColumns(object):
             if frag_seq==f.seq and start_res==f.start_res:
                 answer=True
         return answer
-
-
-

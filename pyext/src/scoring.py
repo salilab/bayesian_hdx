@@ -54,12 +54,9 @@ class GaussianNoiseModel(object):
 
     def peptide_confidence_score(self, peptide):
         # User-definable function for converting peptide confidence into a likelihood.
-        # The function must be evaluatable between 0 and 1. 
-        pass 
+        # The function must be evaluatable between 0 and 1.
+        pass
 
     def experimental_sigma_prior(self, sigma, sigma0):
         # Prior on the sigma value. Long tailed to allow for outlier values.
         return (20.0 / sigma**2) * math.exp(-sigma0**2 / sigma**2)
-
-
-

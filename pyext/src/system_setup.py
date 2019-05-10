@@ -16,8 +16,8 @@ import os.path
 class HDXModel(object):
     '''
      Top-level HDX hierarchy representing a single macromolecular system
-        
-    HDXModel has (multiple) child objects HDXState, each representing different 
+
+    HDXModel has (multiple) child objects HDXState, each representing different
     macromolecular states
     '''
     def __init__(self, name, inseq, offset, number_of_back_exchanged_amides = 2):
@@ -62,8 +62,8 @@ class HDXModel(object):
 
 
 class HDXState(object):
-    """ 
-    Class representing a single protein state.  
+    """
+    Class representing a single protein state.
     Contains a list of Fragment objects unique to the state.
     """
     def __init__(self, model, state_name, seq, offset, mole_frac_liganded=0):
@@ -103,7 +103,7 @@ class HDXState(object):
         '''
         frag_id=len(self.frags)
         new_frag=Fragment(seq, start, end, frag_id)
-        if self.frag_seq_consistency(new_frag)==True: 
+        if self.frag_seq_consistency(new_frag)==True:
             self.frags.append(new_frag)
             return new_frag
         else:
@@ -125,7 +125,7 @@ class HDXState(object):
 
     def frag_seq_consistency(self, frag):
         '''
-        Returns True if fragment sequence and start residue aligns 
+        Returns True if fragment sequence and start residue aligns
         with macromolecule sequence
 
         Returns False with a warning if there is an inconsistency
@@ -146,7 +146,7 @@ class HDXState(object):
 
     def use_subset_of_fragments(self, start_frag, end_frag):
         '''
-        Small hack function that pares the HDXState fragment list to 
+        Small hack function that pares the HDXState fragment list to
         a range of fragment indexes.  Useful for testing.
         '''
         new_frag_list=self.frags[start_frag:end_frag]
@@ -163,7 +163,7 @@ class HDXState(object):
 
     def get_coverage(self, frags=[]):
         '''
-        Given a list of fragments, returns a vector of length 
+        Given a list of fragments, returns a vector of length
         len(seq) containing the per-residue coverage,
         defined as the number of times residue n
         is observed in the set of HDX fragments
@@ -329,10 +329,10 @@ class Fragment(object):
         for tp in self.timepoints:
             tp.calc_model_deut(freq_grid, exp_grid, self.num_observable_amides)
             score += tp.calculate_tp_score(grid, exp_grid, sig, self.num_observable_amides, force_calc=True)
-        return score        
+        return score
 
     def calculate_frag_score(self, grid, exp_grid, sig, save=False, force=False):
-        score = 0     
+        score = 0
         for tp in self.timepoints:
             tp.calc_model_deut(grid, exp_grid, self.num_observable_amides)
             score += tp.calculate_tp_score(grid, exp_grid, sig, self.num_observable_amides, force_calc=True)
@@ -372,7 +372,7 @@ class Timepoint(object):
     def __init__(self, time, sigma0=5.0):
         '''
         @param time - Time in seconds
-        @param sigma0 - Initial estimate of timepoint error sigma in pctD units. 
+        @param sigma0 - Initial estimate of timepoint error sigma in pctD units.
         '''
         self.time=time
         self.models=[]
@@ -392,7 +392,7 @@ class Timepoint(object):
             if force_calc:
                 self.calc_model_deut(freq_grid, exp_grid, num_amides)
                 rep_score = r.calculate_replicate_score(self.model_deut, sig)
-            else:               
+            else:
                 try:
                     rep_score = r.calculate_replicate_score(self.model_deut, sig)
                 except:
@@ -401,7 +401,7 @@ class Timepoint(object):
 
             # This if statement prevents log overflows when score ~0
             if r.calculate_replicate_score(self.model_deut, sig) == 0.0:
-                score += 10000 
+                score += 10000
             else:
                 score += -1.0*numpy.log(rep_score)
         return score / len(self.replicates)
@@ -409,7 +409,7 @@ class Timepoint(object):
 
     def calc_model_deut(self, freq_grid, exp_grid, num_amides):
         # Given an exp_frequency grid and the exp_grid, calculate the deuteration of the model
-        # at this timepoint. 
+        # at this timepoint.
         deut=0
         for n in range(len(exp_grid)):
             #print(n, freq_grid)
@@ -477,7 +477,7 @@ class Timepoint(object):
 
     def set_sigma(self, sigma):
         '''
-        @param sigma - float to set timepoint sigma; or "exp_sd" to use SD from 
+        @param sigma - float to set timepoint sigma; or "exp_sd" to use SD from
              experimental data.
         '''
         if sigma=="exp_sd":

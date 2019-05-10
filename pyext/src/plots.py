@@ -15,7 +15,7 @@ from scipy.stats import gaussian_kde
 #from numpy.random import normal
 from scipy.integrate import simps
 
-   
+
 
 cdict1 = {'red': ((0.0, 0.0, 0.0),
                  (0.45, 0.0, 0.0),
@@ -44,10 +44,10 @@ def calculate_histogram(list, bins):
 
 
 def plot_apo_lig_dhdx(model, show_plot=True, save_plot=False, outfile="dhdx.png", outdir=None, noclobber=True):
-    """ Takes a sampled model and plots the delta HDX (ligand - Apo) 
-    as horizontal line plots for each liganded state 
+    """ Takes a sampled model and plots the delta HDX (ligand - Apo)
+    as horizontal line plots for each liganded state
     Also, outputs raw data for each state to individual dat files
-    """     
+    """
 
     # Set up output directory for the plots
     if outdir is None:
@@ -64,7 +64,7 @@ def plot_apo_lig_dhdx(model, show_plot=True, save_plot=False, outfile="dhdx.png"
     ax=fig.add_axes([0.1,0.5,0.8,0.4])
 
     # calculate bounds
-    
+
     # Create color bar
     my_cmap=matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict1,256)
     # Normalize colormap to delta log(k) = 5 as maxes
@@ -135,10 +135,10 @@ def plot_apo_lig_dhdx(model, show_plot=True, save_plot=False, outfile="dhdx.png"
                 flag = ""
             #print("NNN", avg_apo[n], avg_lig[n], grid_val_lo, "|", grid_val_lo + tol, grid_val_hi -tol, flag)
 
-            
-            f.write("%i %s %s %f %f %f %f %f %f %s\n" % 
+
+            f.write("%i %s %s %f %f %f %f %f %f %s\n" %
                         (n,model.seq[n], s.state_name, dhdx, z[n], avg_lig[n], avg_apo[n], sd_lig[n], sd_apo[n], flag))
- 
+
             # Calculate residue color
             rgba=scalarMap.to_rgba(avg_lig[n]-avg_apo[n])  #my_cmap((avg_lig[n]-avg_apo[n])/3.0)
             lst=list(rgba)
@@ -277,7 +277,7 @@ def plot_fragment_avg_model_fits(state, sig, frags="all", outfile=None, show_plo
         if outfile==None:
             plt.show()
         elif show_plot==False:
-            plt.savefig(outfile, bbox_inches=0)      
+            plt.savefig(outfile, bbox_inches=0)
         else:
             plt.show()
             plt.savefig(outfile, bbox_inches=0)
@@ -290,10 +290,10 @@ def plot_model_scores(kinetic_model, show_plot=True, outfile=None):
         scores = numpy.sort(kinetic_model.calc_model_scores())
 
     fig = plt.figure()
-    x=range(len(scores)) 
+    x=range(len(scores))
     plt.xlabel("Model Rank")
     plt.ylabel("Model Score")
-    plt.scatter(x,scores)  
+    plt.scatter(x,scores)
 
     fig.title=(str(kinetic_model.state.state_name)+"_top_models")
 
@@ -394,7 +394,7 @@ def plot_2state_fragment_avg_model_fits(state1, state2, sig, num_best_models=100
         #plt.text(1,avg-5,"Sali Exp Diff: "+str(exp_diff))
 
         if show_plot==False:
-            plt.savefig(outdir+outfile, bbox_inches=0, format="png")      
+            plt.savefig(outdir+outfile, bbox_inches=0, format="png")
         else:
             plt.show()
             plt.savefig(outdir+outfile, bbox_inches=0, format="png")
@@ -440,7 +440,7 @@ def calculate_shannon_bits(hist):
 
 def import_output_file(model_file):
     '''
-    Import an output file 
+    Import an output file
     The file will have a header:
 
     datasources : data_file1, data_file2 # reduced d
@@ -460,7 +460,7 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
     resnum_label_skip=10
 
     # Get data and place into list of lists.
-    
+
     if type(model_files) != list:
         model_files = [model_files]
 
@@ -517,20 +517,20 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
     for nd in resrange:
         # n is the plot index; nd is the residue index
         n = nd - resrange[0]
-        x_lists = data[n] 
-        print(nd, n, len(x_lists))  
+        x_lists = data[n]
+        print(nd, n, len(x_lists))
         for i in range(len(x_lists)):
             xl = x_lists[i]
             arr = numpy.array(xl)
 
-            ax[n].set_xticks([]) 
+            ax[n].set_xticks([])
 
             if nd%resnum_label_skip == 0:
                 ax[n].set_title(str(nd), fontsize=12)
-                ax[n].set_xticks([0]) 
+                ax[n].set_xticks([0])
                 ax[n].xaxis.set_ticks_position("top")
                 ax[n].plot([0,0],[x[0]-0.2,x[-1]+0.2], color="black", lw=0.5)
-            
+
             # Calculate bits of information
             bits = calculate_shannon_bits(arr)
 
@@ -542,7 +542,7 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
             if plot_prior:
                 ax[n].fill_betweenx(x,0,1.0*numpy.ones(len(x))/len(x),facecolor='grey',alpha=0.5, lw=0)
                 ax[n].fill_betweenx(x,0,-1.0*numpy.ones(len(x))/len(x),facecolor='grey',alpha=0.5, lw=0)
-            
+
             if sum(arr) != 0:
                 # Fill in the prior probability (uniform for now)
                 ax[n].fill_betweenx(x,0,arr,facecolor=colors[i],alpha=0.5, lw=0)
@@ -552,10 +552,10 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
                 for yval in range(1, int(numpy.max(d))+1,ytick_rate):
                     ax[n].axhline(y=yval,ls='-', lw=0.5)
 
-                #ax[n].set_xticks([str(nd)])       
+                #ax[n].set_xticks([str(nd)])
             ax[n].tick_params(axis='x', which='major', labelsize=0, color="grey")
-            
-            
+
+
             ax[n].set_frame_on(False)
             #ax[n].spines['top'].set_visible(False)
             #ax[n].spines['right'].set_visible(False)
@@ -569,8 +569,8 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
     plt.savefig("test_violins.png", dpi=300, format="png")
     plt.show()
 
-def plot_residue_protection_factors(parse_output, rate_bins=None, 
-                                    resrange=None, plot_prior=True, 
+def plot_residue_protection_factors(parse_output, rate_bins=None,
+                                    resrange=None, plot_prior=True,
                                     resnum_skip=10, num_best_models=100,
                                     true_vals=None):
     # Input is a standard output model file and the rate bins
@@ -585,7 +585,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     resnum_label_skip=resnum_skip
 
     # Get data and place into list of lists.
-    
+
     if type(parse_output) != list:
         parse_output = [parse_output]
 
@@ -607,7 +607,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     pf_list = []
     # make array of models
     for d in data_list:
-        pfs = []        
+        pfs = []
         for i in d:
             pfs.append(numpy.array(i[1][0]))
             #print(i[1][0])
@@ -664,20 +664,20 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     for nd in resrange:
         # n is the plot index; nd is the residue index
         n = nd - resrange[0]
-        x_lists = data[n] 
-        print(nd, n, len(x_lists))  
+        x_lists = data[n]
+        print(nd, n, len(x_lists))
         for i in range(len(x_lists)):
             xl = x_lists[i]
             arr = numpy.array(xl)
 
-            ax[n].set_xticks([]) 
+            ax[n].set_xticks([])
 
             if nd%resnum_label_skip == 0:
                 ax[n].set_title(str(nd), fontsize=12)
-                ax[n].set_xticks([0]) 
+                ax[n].set_xticks([0])
                 ax[n].xaxis.set_ticks_position("top")
                 ax[n].plot([0,0],[x[0]-0.2,x[-1]+0.2], color="black", lw=0.5)
-            
+
             # Calculate bits of information
             bits = calculate_shannon_bits(arr)
 
@@ -691,23 +691,23 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
                 ax[n].fill_betweenx(x,0,1.0*numpy.ones(len(x))/len(x),facecolor='grey',alpha=0.5, lw=0)
                 ax[n].fill_betweenx(x,0,-1.0*numpy.ones(len(x))/len(x),facecolor='grey',alpha=0.5, lw=0)
 
-         
+
             if not math.isnan(arr[0]):
                 #print(nd, x, arr, len(arr), len(x), numpy)
                 ax[n].fill_betweenx(x,0,arr,facecolor=colors[i],alpha=0.5, lw=0)
-                ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)   
+                ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)
                 # Add in lower bar for information content
                 ax[n].barh(bottom=-1*bits+minbin,width=2*xlim/len(x_lists), height=bits,left=-1*xlim+i*2*xlim/len(x_lists),color=colors[i], alpha=0.7, lw=0)
                 for yval in range(minbin, maxbin, ytick_rate):
                     ax[n].axhline(y=yval,ls='-', lw=0.5)
             else:
                 ax[n].fill_betweenx(x,0,numpy.zeros(parse_output[0].grid_size-0),facecolor=colors[i],alpha=0.5, lw=0)
-                #ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)  
+                #ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)
 
-                #ax[n].set_xticks([str(nd)])       
+                #ax[n].set_xticks([str(nd)])
             ax[n].tick_params(axis='x', which='major', labelsize=0, color="grey")
-            
-            
+
+
             ax[n].set_frame_on(False)
             #ax[n].spines['top'].set_visible(False)
             #ax[n].spines['right'].set_visible(False)
