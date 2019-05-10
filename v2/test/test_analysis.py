@@ -9,15 +9,13 @@ import numpy
 
 input_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'input'))
 
-print(input_dir)
-
 class TestParseOutputFile(unittest.TestCase):
     '''
     ParseOutputFile reads an output file created from a sampler
     '''
 
     def test_create_pof(self):
-        output_file = input_dir + "/cytC_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
+        output_file = input_dir + "/cytc_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
 
         pof=analysis.ParseOutputFile(output_file)
         self.assertEqual(pof.output_file, output_file)
@@ -29,13 +27,13 @@ class TestParseOutputFile(unittest.TestCase):
         self.assertEqual(len(pof.models), 0)
 
     def test_get_models_datasets(self):
-        output_file = input_dir + "/cytC_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
+        output_file = input_dir + "/cytc_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
 
         pof=analysis.ParseOutputFile(output_file) 
         self.assertEqual(len(pof.get_all_models()), 5100) 
 
     def test_get_sequence(self):
-        output_file = input_dir + "/cytC_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
+        output_file = input_dir + "/cytc_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
 
         pof=analysis.ParseOutputFile(output_file) 
 
@@ -44,11 +42,11 @@ class TestParseOutputFile(unittest.TestCase):
         cytc_seq = "MGDVEKGKKIFVQKCAQCHTVEKGGKHKTGPNLHGLFGRKTGQAPGFTYTDANKNKGITWKEETLMEYLENPKKYIPGTKMIFAGIKKKTEREDLIAYLKKATNE"
 
         self.assertEqual(seq,cytc_seq)        
-'''
+
 class TestOutputAnalysis(unittest.TestCase):
 
     def create_output_analysis(self):
-        files = [input_dir+"/cytC_output/prod"+str(i)+"/models_scores_sigmas-CytC_pH_6.5.dat" for i in range(1,7)]
+        files = [input_dir+"/cytc_output/prod"+str(i)+"/models_scores_sigmas-CytC_pH_6.5.dat" for i in range(1,7)]
         oa = analysis.OutputAnalysis(files)
 
         return oa
@@ -67,7 +65,7 @@ class TestOutputAnalysis(unittest.TestCase):
 class TestConvergence(unittest.TestCase):
 
     def create_convergence(self):
-        files = [input_dir+"/cytC_output/prod"+str(i)+"/models_scores_sigmas-CytC_pH_6.5.dat" for i in range(1,7)]
+        files = [input_dir+"/cytc_output/prod"+str(i)+"/models_scores_sigmas-CytC_pH_6.5.dat" for i in range(1,7)]
         oa = analysis.OutputAnalysis(files)
         return oa.get_convergence(100)
 
@@ -110,12 +108,12 @@ class TestConvergence(unittest.TestCase):
         self.assertEqual(num_mods, n*2)
         self.assertGreater(len(pofs[0].models),len(pofs[1].models))
 
-'''
+
 class TestDeltaHDX(unittest.TestCase):
 
     def test_DHDX_same_file(self):
 
-        output_file = input_dir + "/cytC_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
+        output_file = input_dir + "/cytc_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
         pof1 = analysis.ParseOutputFile(output_file)
         pof2 = analysis.ParseOutputFile(output_file)
 
@@ -129,8 +127,8 @@ class TestDeltaHDX(unittest.TestCase):
 
     def test_DHDX_different_files(self):
 
-        output_file1 = input_dir + "/cytC_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
-        output_file2 = input_dir + "/cytC_output/prod1/models_scores_sigmas-CytC_pH_7.4.dat"
+        output_file1 = input_dir + "/cytc_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
+        output_file2 = input_dir + "/cytc_output/prod1/models_scores_sigmas-CytC_pH_7.4.dat"
         pof1 = analysis.ParseOutputFile(output_file1)
         pof2 = analysis.ParseOutputFile(output_file2)
 
