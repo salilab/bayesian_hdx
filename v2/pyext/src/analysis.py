@@ -348,6 +348,7 @@ class DeltaHDX(object):
         state_name1 = self.pof1.state_name
         state_name2 = self.pof2.state_name
         molecule_name = self.pof1.molecule_name
+        sequence = self.pof1.get_sequence()
 
         filename = molecule_name+"_"+state_name1 + "_"+state_name2+".dhdx"
 
@@ -368,7 +369,7 @@ class DeltaHDX(object):
         diff, Z, mean1, mean2, sd1, sd2 = self.calculate_dhdx()
 
         for r in resrange:
-            f.write(str(r)+" "+str("A")+" XX "+ str(diff[r-1]) + " " + str(Z[r-1]) + " " + str(mean2[r-1])+ " " + str(mean1[r-1]) + " " + str(sd2[r-1])+ " " + str(sd1[r-1])+"\n")
+            f.write(str(r)+" "+str(sequence[r-1])+" XX "+ str(diff[r-1]) + " " + str(Z[r-1]) + " " + str(mean2[r-1])+ " " + str(mean1[r-1]) + " " + str(sd2[r-1])+ " " + str(sd1[r-1])+"\n")
 
         f.close()
 
@@ -391,6 +392,13 @@ class ParseOutputFile(object):
         self.observed_residues = []
         self.parse_header()
         self.path = os.path.dirname(os.path.realpath(output_file))
+
+    def get_sequence(self):
+        '''
+        Return the macromolecule sequence from the output file
+        '''
+        return self.get_datasets()[0].sequence
+
 
     def parse_header(self):
         '''

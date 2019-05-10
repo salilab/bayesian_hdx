@@ -32,7 +32,18 @@ class TestParseOutputFile(unittest.TestCase):
         output_file = input_dir + "/cytC_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
 
         pof=analysis.ParseOutputFile(output_file) 
-        self.assertEqual(len(pof.get_all_models()), 5100)     
+        self.assertEqual(len(pof.get_all_models()), 5100) 
+
+    def test_get_sequence(self):
+        output_file = input_dir + "/cytC_output/prod1/models_scores_sigmas-CytC_pH_6.5.dat"
+
+        pof=analysis.ParseOutputFile(output_file) 
+
+        seq = pof.get_sequence()
+
+        cytc_seq = "MGDVEKGKKIFVQKCAQCHTVEKGGKHKTGPNLHGLFGRKTGQAPGFTYTDANKNKGITWKEETLMEYLENPKKYIPGTKMIFAGIKKKTEREDLIAYLKKATNE"
+
+        self.assertEqual(seq,cytc_seq)        
 '''
 class TestOutputAnalysis(unittest.TestCase):
 
@@ -98,8 +109,8 @@ class TestConvergence(unittest.TestCase):
 
         self.assertEqual(num_mods, n*2)
         self.assertGreater(len(pofs[0].models),len(pofs[1].models))
-'''
 
+'''
 class TestDeltaHDX(unittest.TestCase):
 
     def test_DHDX_same_file(self):
@@ -126,8 +137,6 @@ class TestDeltaHDX(unittest.TestCase):
         dhdx = analysis.DeltaHDX(pof1, pof2)
 
         diff, Z, mean1, mean2, sd1, sd2 = dhdx.calculate_dhdx()
-
-        print(Z.shape)
 
         dhdx.write_dhdx_file()
 
