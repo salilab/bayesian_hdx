@@ -10,7 +10,7 @@ input_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'input'))
 
 print(input_dir)
 
-class TestParseOutputFile(untitest.TestCase):
+class TestParseOutputFile(unittest.TestCase):
     '''
     ParseOutputFile reads an output file created from a sampler
     '''
