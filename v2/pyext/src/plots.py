@@ -608,11 +608,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
 
     data_list = []
     for po in parse_output:
-        #print(po, len(po.get_best_scoring_models(num_best_models, return_pf=True)))
-        if num_best_models=="all":
-            data_list.append(po.get_all_models(return_pf=True, sort_sectors=sort_sectors))
-        else:
-            data_list.append(po.get_best_scoring_models(num_best_models, return_pf=True, sort_sectors=sort_sectors))
+        data_list.append(po.get_best_scoring_models(num_best_models, return_pf=True, sort_sectors=sort_sectors))
 
 
 
