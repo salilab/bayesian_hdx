@@ -14,6 +14,7 @@ from copy import deepcopy
 import os.path
 from pylab import *
 from matplotlib import *
+import sklearn
 
 class Precision(object):
     '''
@@ -109,7 +110,7 @@ class Convergence(object):
 
         return output
 
-    def get_distance_matrix(self, num_models='all'):
+    def get_distance_matrix(self, num_models='all', njobs=-3):
         from sklearn.metrics.pairwise import pairwise_distances
         if num_models == 'all':
             num_models = self.num_gsm
@@ -118,7 +119,7 @@ class Convergence(object):
 
         self.bsm1, self.bsm2 = self.get_models(num_models)
 
-        self.full_distance_matrix = (pairwise_distances(numpy.array(self.bsm1+self.bsm2), metric='cosine', n_jobs=-1)* 10)**2
+        self.full_distance_matrix = (pairwise_distances(numpy.array(self.bsm1+self.bsm2), metric='cosine', n_jobs=njobs)* 10)**2
         return self.full_distance_matrix
 
     def precision_cluster(self, threshold):
@@ -308,9 +309,6 @@ class Convergence(object):
             print(" --", c, len(cluster_members[c]), len(new_po.models))
             cluster_pofs.append(new_po)
 
-        for pof in cluster_pofs:
-            print("POF", len(pof.models))
-
         return cluster_pofs
 
 
@@ -475,7 +473,15 @@ class ParseOutputFile(object):
     def generate_datasets(self):
         self.datasets=[]
         for f in self.datafiles:
+            print(self.path, f)
             self.datasets.append(hxio.import_json(self.path+f[0]))
+
+    def get_models(self, return_pf=False):
+        # returns all models stored in the POF (not the data file)
+        if return_pf:
+            return self.models_to_protection_factors(self.models)
+        else:
+            return self.models
 
     def get_all_models(self, return_pf=False):
         f = open(self.output_file, "r")
