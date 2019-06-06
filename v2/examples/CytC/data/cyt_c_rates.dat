@@ -1,0 +1,65 @@
+HEADER
+Protein oxidized cyt c  # protein name and any mutations/notes.
+Temp 293.15     # temperature in kelvins
+pH 6.6 # they reported pD as 7    # pH of experiment (or pH corrected)
+ionic None         # ionic strength in millimolar
+std_error None      # Error estimate for all values (if given as a pct)
+unit hr             # unit of rate constant (s, m, hr), reciprocal
+reference JS Milne, 1997 None # Either the author or a citation, if you can find it.
+
+DATA
+resid res hdx error 
+7 K 2.8e-1
+8 K 8.4e-1
+9 I 3.4e-2
+10 F 6e-5
+11 V 1.7e-2
+12 Q 2.2e-1
+13 K 5.2e-2
+14 C 8e-2
+15 A 5e-1
+18 H 4.6e-1
+19 T 3.8e-1
+29 G 1.2e-1
+31 N 2.3e1 
+32 L 4.2e-3
+33 H 2.1e-2
+35 L 4.1e-1
+36 F 8.9e-2
+37 G 1.1e0
+38 R 1.6e0
+40 T 4.1e0
+42 Q 5.8e0
+43 A 1.5e1
+49 T 2.7e1 
+52 N 9.6e0
+53 K 1.4e1 
+54 N 2.2e1 
+57 I 3.5e0
+59 W 1.5e-1
+60 K 1.7e-2
+64 L 1.6e-2
+65 M 2.7e-3
+66 E 6.1e-1
+67 Y 3.5e-2
+68 L 1.3e-5
+69 E 1.0e-2
+70 N 7.8e-1
+73 K 7.5e0
+74 Y 2.2e-1
+75 I 1.1e-1
+79 K 2.2e1 
+80 M 3.3e1 
+85 I 1.2e0
+91 R 1.3e-2
+92 E 7e-3
+93 D 1.5e-2
+94 L 4e-5 
+95 I <4e-6
+96 A <3.9e-5
+97 Y <2.6e-5
+98 L 4e-7 
+99 K <1.3e-4
+100 K 2.6e-1
+101 A 3.9e-1
+102 T 4.5e0
