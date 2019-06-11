@@ -192,7 +192,7 @@ class Dataset(object):
         if self.sequence is not None:
             if not self.peptide_sequence_consistency(new_peptide):
                 target_pep = self.sequence[new_peptide.start_residue-1:new_peptide.start_residue+len(new_peptide.sequence)-1]
-                print(new_peptide.start_residue)
+                #print(new_peptide.start_residue)
                 print("Peptide ", new_peptide.sequence, new_peptide.start_residue, " does not fit in ", target_pep )
                 raise Exception("Exiting at Dataset.add_peptide")
             # If the peptide is already in the dataset, return that peptide
@@ -272,7 +272,7 @@ class Dataset(object):
         peptides = {}
         for pep in self.get_peptides():
             pep_dict = {}
-            print(pep.sequence)
+            #print(pep.sequence)
             pep_dict["sequence"] = pep.sequence
             pep_dict["start_residue"] = pep.start_residue
             pep_dict["charge_state"] = pep.charge_state
@@ -625,8 +625,8 @@ class SimulatedData(object):
 
     def create_dataset(self):
         data = Dataset(sequence=self.sequence)
-        for p in self.peptides:
-            print(p)
+        #for p in self.peptides:
+        #    print(p)
 
 
 class Replicate(object):
