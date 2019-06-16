@@ -378,9 +378,6 @@ class State(object):
     def get_sectors(self):
         return self.sectors
 
-    def create_simulated_data(self):
-        data = data.Dataset()
-
     def calculate_residue_incorporation(self, protection_factors, change_tp_deut=True):
         # The self.residue_incorporations dictionary holds the per-residue
         # deuteration level for a given protection factor for each dataset
