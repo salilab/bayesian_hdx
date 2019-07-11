@@ -553,7 +553,7 @@ class Output(object):
             #else:
             #    raise Warning("Output directory " + output_directory + " already exists. Results will be overwritten")
         else:
-            os.mkdir(output_directory)
+            os.makedirs(output_directory)
 
     def change_output_directory(self, dir):
         self.output_directory = dir
