@@ -2,7 +2,7 @@
    Classes to handle the HDX data hierarchy
 """
 from __future__ import print_function
-from scoring import GaussianNoiseModel
+from scoring import ScoringFunction, GaussianNoiseModel
 import hxio
 import numpy
 import math
@@ -107,55 +107,6 @@ class Macromolecule(object):
     def get_apo_state(self):
         return self.states[0]
 
-
-class HDXModel(object):
-    '''
-     Top-level HDX hierarchy representing a single macromolecular system
-        
-    HDXModel has (multiple) child objects HDXState, each representing different 
-    macromolecular states
-    '''
-    def __init__(self, name, inseq, offset, number_of_back_exchanged_amides=2):
-        '''
-        Experimental variables contained in HDXModel:
-        @param name - Unique identifier for this macromolecule
-        @param inseq - FASTA sequence of macromolecule
-        @param offset - offset to match FASTA sequence index to residue number in data
-        @param number_of_back_exchanged_amides - The estimate for number of N-terminal amides that
-                        will back exchange during analysis
-        '''
-        self.target_name=name
-        self.states=[]
-        self.score=0
-        #offset is only used to provide offset between input sequence and fragment data
-        #all calculations in this module will be based off of the sequence index of inseq, however
-        #fragment data may be offset by some number
-        self.offset=offset-1
-        self.num_states=0
-        self.seq=inseq
-        self.num_res=len(self.seq)
-        self.total_amides=self.calc_total_amides(self.seq)
-        self.back_exchanged_amides = number_of_back_exchanged_amides
-        self.sectors = []
-
-    def calc_total_amides(self, inseq):
-        numP=inseq.count('P',2) + inseq.count('p',2)
-        return len(self.seq)-numP
-
-    def add_state(self, sname, mole_frac_liganded=1):
-        self.num_states=self.num_states+1
-        new_state=HDXState(self,sname,self.seq, self.offset, mole_frac_liganded)
-        self.states.append(new_state)
-        return new_state
-
-    def calc_num_amides(self, inseq):
-        numP=inseq.count('P',2) + inseq.count('p',2)
-        return len(self.seq)-numP
-
-    def get_apo_state(self):
-        return self.states[0]
-
-
 class State(object):
     """ add one or more perturbations to the base system.
     A perturbation could be a small molecule
@@ -163,7 +114,7 @@ class State(object):
     """
     def __init__(self, mol, name, perturbations=None, 
                     output_model=None,
-                    scoring_function=GaussianNoiseModel()):
+                    scoring_function=None):
         self.name = name
         self.macromolecule = mol
         self.perturbations = []
@@ -178,13 +129,21 @@ class State(object):
 
         self.data = []
         self.sectors = []
-        self.output_model = output_model
-        self.scoring_function = scoring_function
+        if output_model is not None:
+            self.set_output_model(output_model)
+        else:
+            self.output_model = None
+
+        if scoring_function is None:
+            self.scoring_function = ScoringFunction(GaussianNoiseModel(self))
         self.residue_sector_dictionary = {}
         self.score=10000000
 
     def get_output(self):
         return self.macromolecule.system.get_output()
+
+    def get_scoring_function(self):
+        return self.scoring_function
 
     def get_name(self):
         return self.name
@@ -193,7 +152,7 @@ class State(object):
         '''adds a model object
         '''
         self.output_model = model
-        self.has_model=True
+        self.has_model = True
         return self.output_model
 
     def set_scoring_function(self, scoring_function=GaussianNoiseModel):
@@ -384,6 +343,7 @@ class State(object):
         self.residue_incorporations = {}
 
         for d in self.data:
+
             timepoints = set([tp.time for tp in d.get_all_timepoints()])
             self.residue_incorporations[d] = tools.calculate_incorporation(numpy.ones(len(protection_factors))*d.get_intrinsic_rates(), protection_factors, timepoints)
             #print(protection_factors, self.residue_incorporations[d])
@@ -439,11 +399,11 @@ class State(object):
             self.calculate_residue_incorporation(protection_factors)
 
         # Second, pass these protection factors to each dataset object
-        for d in self.data:
-            dataset_score = self.calculate_peptides_score(d.get_peptides(), protection_factors)
-            total_score += dataset_score
+        #for d in self.data:
+        #    dataset_score = self.calculate_peptides_score(d.get_peptides(), protection_factors)
+        #    total_score += dataset_score
 
-        return total_score
+        return self.calculate_peptides_score(self.get_all_peptides(), protection_factors)
 
     def get_observable_residue_numbers(self):
         if self.observable_residue_numbers == []:
@@ -506,60 +466,7 @@ class State(object):
         calculate the score.  Useful for calculating changes that only affect
         a susbset of peptides.
         '''
-        if peptides is None:
-            peptides = self.get_all_peptides()
-
-        total_score = self.scoring_function.protection_factor_prior(protection_factors)
-
-        scoring_function = self.scoring_function
-        
-        for pep in peptides:
-            sigma0 = pep.dataset.sigma_estimate
-            peptide_score = 0
-
-            d = pep.get_dataset()
-
-            observable_residues = pep.get_observable_residue_numbers()
-            #print(pep.sequence, observable_residues)
-
-            for tp in pep.get_timepoints():
-                # initialize tp score to the sigma prior
-                tp_score = -1*math.log(scoring_function.experimental_sigma_prior(tp.sigma, sigma0))
-
-                #model_tp_raw_deut = self.sum_incorporations(self.calculate_residue_incorporation(self.output_model.model_protection_factors)[d], observable_residues, tp.time)
-                model_tp_raw_deut = 0
-                for r in observable_residues:
-                    model_tp_raw_deut += self.residue_incorporations[d][r][tp.time]
-
-                #------------------------------
-                # Here is where we would add back exchange estimate
-                #------------------------------
-
-                # Convert raw deuterons into a percent
-                model_tp_deut = float(model_tp_raw_deut)/pep.num_observable_amides * 100
-
-                # Calculate a score for each replicate
-                for rep in tp.get_replicates():
-                    replicate_likelihood = scoring_function.replicate_score(model=model_tp_deut, exp=rep.deut, sigma=tp.sigma) 
-
-                    if replicate_likelihood <= 0:
-                        rep.set_score(10000000000)
-                    else:
-                        rep.set_score(-1*math.log(replicate_likelihood))
-
-                    tp_score += rep.get_score()
-
-                # Set the timepoint score
-                tp.set_score(tp_score)
-
-                peptide_score += tp_score
-
-            total_score += peptide_score
-            #print(pep.sequence, observable_residues, peptide_score)
-            #print("   ", [self.sequence[s-1] for s in observable_residues])
-
-        self.total_score = total_score
-        return total_score
+        return self.scoring_function.evaluate(protection_factors, peptides)
 
     def consolidate_model_to_sectors(self, model):
         # Given a model, return a list of lists with 
@@ -580,6 +487,29 @@ class State(object):
 
     def set_score(self, score):
         self.score = score
+
+    def calculate_residue_information_content(self):
+        '''
+        The set of peptides and timepoints can be used to calculate the amount of
+        information at each residue for each protection factor in the model.
+
+        For each peptide, the information at Pf = P for a residue is defined as
+        1/(number of observable amides) * Resolving_power(P)
+
+        Where resolving power is the sum over all timepoints, tp, of: 
+            10^[(k_ex/P)*exp(-10^(k_ex/P)*tp)
+        where k_ex is the intrinsic rate of the amide at the dataset conditions (T, pH)
+        
+        residue_information is a 2D grid of length=# of residues and height of the number of grid
+        points in the hdx_model
+        '''
+
+        residue_information = numpy.zeros((len(self.sequence), self.output_model.grid_size))
+        protection_factors = self.output_model.pf_grids[0]
+        for d in self.data:
+            residue_information += d.get_residue_information_content(protection_factors)
+
+        return residue_information
 
 
 
