@@ -180,13 +180,10 @@ class EnumerationSampler(object):
 
 class MCSampler(object):
     '''
-    # TO IMPLEMENTED
-
-    # Add individual movers for each residue/sigma
     # 
     
     '''
-    def __init__(self, sys, initialize=True, sigma_sample_level=None, pct_moves=25, accept_range=(0.3, 0.4)):
+    def __init__(self, sys, initialize=True, sigma_sample_level=None, pct_moves=25, accept_range=(0.3, 0.8)):
         # Ensure that all states in system has a dataset and a model and a scoring function
         '''
         @param sigma_sample_level - None: Don't sample sigmas. "dataset": sample one sigma per dataset. 
@@ -297,9 +294,11 @@ class MCSampler(object):
         output = self.states[0].macromolecule.system.get_output()
         for s in self.states:
             state_score = s.calculate_score(s.output_model.model)
+            s.set_score(state_score)
             init_score += state_score
             #print(s, state_score)
-            output_files.append(open(output.get_output_file(s), "a"))
+            if write:
+                output_files.append(open(output.get_output_file(s), "a"))
             for d in s.data:
                 d.collect_times()
         if find_temperature:
@@ -307,14 +306,16 @@ class MCSampler(object):
             temperature = self.get_acceptable_temperature(init_temp=init_temp, acceptance_range=acceptance_range)
         else:
             temperature = init_temp
+
         print("Simulation temperature = ", temperature)
         print("Step score | states_avg_protection_factor | mc_acceptance_ratio")
         for i in range(NSTEPS):
             #print("Step:", i)
             score, model_avg_str, acceptance = self.run_one_step(temperature, write_all)
             acceptance_total += acceptance
-            if i%10 == 0:
+            if i%100 == 0:
                 print("Step %i, %0.1f | %s, %0.2f" % (i, score, model_avg_str, acceptance))
+                print(self.states[0].output_model.model)
             if write:
                 for s in range(len(self.states)):
                     st = self.states[s]
@@ -347,9 +348,9 @@ class MCSampler(object):
 
             #print(init_score)
             # Make sure all sector scores are calculated
-            for s in state.sectors:
-                oldscore = state.calculate_peptides_score(s.get_peptides(), state.output_model.model_protection_factors)
-                s.set_score(oldscore)
+            #for s in state.sectors:
+            #    oldscore = state.calculate_peptides_score(s.get_peptides(), state.output_model.model_protection_factors)
+            #    s.set_score(oldscore)
 
             ###########################
             # This should be movable particles
@@ -368,8 +369,7 @@ class MCSampler(object):
                 # Get the current value for this residue
                 oldval = int(state.output_model.get_model_residue(r))
                 # Propose a new value given the current state
-                #oldscore = state.calculate_peptides_score(r_sector.get_peptides(), state.output_model.model_protection_factors)
-                oldscore = r_sector.get_score()
+                oldscore = state.get_score()
                 newval = self.residue_sampler.propose_move(oldval) 
 
                 # Change the residue incorporation values in each sector
@@ -377,16 +377,19 @@ class MCSampler(object):
                 state.change_single_residue_incorporation(r, newval)
 
                 #newscore = state.calculate_peptides_score(s.get_peptides(), state.output_model.model_protection_factors)
+                #newscore = state.calculate_peptides_score(state.get_all_peptides(), state.output_model.model_protection_factors)
                 newscore = state.calculate_peptides_score(r_sector.get_peptides(), state.output_model.model_protection_factors)
-                r_sector.set_score(newscore)
+                state.set_score(newscore)
 
                 accept = metropolis_criteria(oldscore, newscore, temperature)
                 #print(" ", state.get_name(), r, oldval, newval, "|", oldscore, newscore, accept)
+
                 if not accept:
                     flips -= 1
                     #state.output_model.change_residue(r, oldval)
                     state.change_single_residue_incorporation(r, oldval)
-                    r_sector.set_score(oldscore)
+                    state.set_score(oldscore)
+                    newscore = state.calculate_peptides_score(r_sector.get_peptides(), state.output_model.model_protection_factors)
 
                 #print("     ", [state.output_model.model_protection_factors[-1]], [(tp.time, tp.get_model_deuteration()*100, tp.get_avg_sd()[0]) for tp in list(r_sector.get_peptides())[0].get_timepoints()] )
             '''
@@ -443,11 +446,11 @@ class MCSampler(object):
             #    sum_state_score += sec_score
 
 
-            state_score = state.calculate_score(state.output_model.model)
+            #state_score = state.calculate_score(state.output_model.model)
             #print(state.name, state_score, sum_state_score)
 
-            state.set_score(state_score)
-            total_score += state_score
+            #state.set_score(state_score)
+            total_score += state.get_score()
 
             #acceptanc2e_ratio += float(flips2)/len(resis)/(self.pct_moves / 100.)
             #print("XX", oldscore, newscore, state.calculate_peptides_score(r_sector.get_peptides(), state.output_model.model_protection_factors))
