@@ -371,6 +371,18 @@ class DeltaHDX(object):
 
         f.close()
 
+    def write_pymol_file(self, pdb_file, pymol_file):
+        '''
+        Write a pymol file that 
+        '''
+        pass
+
+    def write_volcano_plot(self, plot_file):
+        '''
+        write out a volcano plot for all residues
+        '''
+        pass
+
 
 class ParseOutputFile(object):
     '''
@@ -426,11 +438,10 @@ class ParseOutputFile(object):
 
             elif line[0:2]=="$ ":
                 if line[2:].split("|")[0].strip() != "Residue_number":
-                    #print(line[2:].split("|")[0].strip())
                     res = int(line[2:].split("|")[0].strip())
                     grid = []
                     for pf in line[2:].split("|")[1].strip().split(" "):
-                        #print(line[2:].split("|")[1].strip().split(" "))
+
                         grid.append(float(pf))
                     self.pf_grids[res] = grid
 
@@ -453,8 +464,6 @@ class ParseOutputFile(object):
         mods = [m[1] for m in self.get_best_scoring_models(N=nmodels)]
         models = numpy.array(mods)
         kmeans = KMeans(n_clusters=nclust).fit(models)
-
-        #print(kmeans.labels_)
 
         for i in range(nclust):
             unique, counts = numpy.unique(kmeans.labels_, return_counts=True)
@@ -498,7 +507,6 @@ class ParseOutputFile(object):
                 if return_pf:
                     ml1 = model_list
                     model_list = self.models_to_protection_factors(model_list)
-                    #print(score, model_list, ml1)
                 models.append((score, model_list)) 
 
         self.models = models
@@ -560,6 +568,7 @@ class ParseOutputFile(object):
     def models_to_protection_factors(self, models):
         # Input a list of list of integers.  
         # CHECK THAT THE MODEL SIZE IS CORRECT!
+
         if type(models[0]) != list:
             models = [models]
 
