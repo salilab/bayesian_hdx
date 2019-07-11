@@ -132,7 +132,7 @@ ElementMasses = {
 
 
 
-def calc_intrinsic_rate(Laa, Raa, pH, T, La2="A", Ra2="A", log=False):
+def calc_intrinsic_rate(Laa, Raa, pH, T, La2="A", Ra2="A", log=False, forward=True):
     ''' Calculates random coil Hydrogen to Deuterium exchange rate for amide corresponding to side chain Raa
     @param Laa - amino acid letter code N-terminal to amide
     @param Raa - amino acid letter of amide
@@ -149,18 +149,26 @@ def calc_intrinsic_rate(Laa, Raa, pH, T, La2="A", Ra2="A", log=False):
     pKcAsp = 4.48
     pKcGlu = 4.93
     pKcHis = 7.4
-    ka = 0.694782306
-    kb = 187003075.7
-    kw = 0.000527046
     R = 1.987
     EaA = 14000
     EaB = 17000
     EaW = 19000
-    EaAsp = 1000
     EaGlu = 1083
     EaHis = 7500
-    # the pD is different than the pH by +0.4 units
-    pDcorr = pH+0.4
+    if forward:
+        EaAsp = 1000
+        # the pD is different than the pH by +0.4 units
+        pDcorr = pH+0.4
+        ka = 0.694782306
+        kb = 187003075.7
+        kw = 0.000527046
+    else:
+        EaAsp = 960
+        # the pD is different than the pH by +0.4 units
+        pDcorr = pH
+        ka = 0.4186477
+        kb = 166666666.6
+        kw = 0.0004186477
 
     inv_dTR = (1./T-1./293)/R
 
@@ -199,17 +207,17 @@ def calculate_number_of_observable_amides(inseq, n_fastamides=2):
     num_prolines = inseq.count('P', n_fastamides) + inseq.count('p', n_fastamides)
     return len(inseq) - num_prolines - n_fastamides
 
-def get_sequence_intrinsic_rates(seq, pH, T, log=False):
+def get_sequence_intrinsic_rates(seq, pH, T, log=False, forward=True):
     i_rates = numpy.zeros(len(seq))
-    i_rates[0] = calc_intrinsic_rate("NT", seq[0], pH, T)
-    i_rates[1] = calc_intrinsic_rate(seq[0], seq[1], pH, T, La2="NT")
+    i_rates[0] = calc_intrinsic_rate("NT", seq[0], pH, T, forward=forward)
+    i_rates[1] = calc_intrinsic_rate(seq[0], seq[1], pH, T, La2="NT", forward=forward)
     for n in range(2, len(seq)-1):
         #print(n, seq[n],seq[n+1])
         L = seq[n-1]
         R = seq[n]
-        i_rates[n] = calc_intrinsic_rate(L, R, pH, T)
+        i_rates[n] = calc_intrinsic_rate(L, R, pH, T, forward=forward)
 
-    i_rates[-1] = calc_intrinsic_rate(seq[-2], seq[-1], pH, T, Ra2="CT")
+    i_rates[-1] = calc_intrinsic_rate(seq[-2], seq[-1], pH, T, Ra2="CT", forward=forward)
     if log:
         # Suppress divide by zero error.
         with numpy.errstate(divide='ignore'):
@@ -288,14 +296,10 @@ def get_residue_deuteration_at_each_timepoint(dataset, protection_factors):
             else:
                 log_kex = dataset.intrinsic[i] - protection_factors[i] 
                 # Deuterium incorporation is scaled by the amount of deuterium in solution
-                #print(dataset.intrinsic[i], protection_factors[i])
-                #print(log_kex, tp.time)
                 deut = calculate_simple_deuterium_incorporation(log_kex, tp.time) * dataset.conditions.saturation
                 deuterations.append(deut)
-            #print(log_kex, t.time, deut)
         tp.set_deuteration(deut)
         deuterations_by_time[tp.time] = deuterations
-        #print(deuterations_by_time)
 
     return deuterations_by_time
 
@@ -353,6 +357,14 @@ def calc_peptide_isotopic_distribution(string, threshold = 0.1):
 def calculate_deut(rate, time):
     return 1-math.exp(-1*(10**rate)*time)
 
+def simulate_peptides_data(seq, exch_rates, st_end_tups, timepoints, replicates=3, obs_error=5, percentD=True):
+
+    peptides = []
+    for i in st_end_tups:
+        peptides.append(simulate_peptide_data(seq[i[0]-1:i[1]], i[0], timepoints, replicates, obs_error, percentD))
+
+    return peptides
+
 
 def simulate_peptide_data(seq, start_res, exch_rates, timepoints, replicates=3, obs_error=5, percentD=True):
     '''
@@ -364,7 +376,6 @@ def simulate_peptide_data(seq, start_res, exch_rates, timepoints, replicates=3, 
 
     Returns a list of lists of 2D incorporation values.  
     '''
-
     peptide = system.Peptide(seq, start_res, start_res+len(seq))
 
     # Add data to the fragment
