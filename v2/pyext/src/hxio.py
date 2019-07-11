@@ -63,11 +63,11 @@ def import_MSStudio(infile, state=None):
 
 
 def import_HXcolumns(infile, sequence, name="Data", percentD=False, conditions=None, error_estimate=5.0, n_fastamides=2, offset=0):
-    """ Function for converting a set of HX columns intoa Dataset object
+    """ Function for converting a set of HX columns into a Dataset object
     """
 
     if type(conditions) is not Conditions:
-        print("Standard Conditions used.  Please modify these in the script if you are not at 283K and pH=7")
+        print("Standard Conditions used.  Please modify these in the script if you are not at 293K and pH=7")
         conditions = Conditions()
 
     f = open(infile,"r")
@@ -88,7 +88,11 @@ def import_HXcolumns(infile, sequence, name="Data", percentD=False, conditions=N
         #print("-----", start_res, column_headers.index("start_res"), offset, line)
         if not percentD:
             deut = deut / tools.calculate_number_of_observable_amides(sequence, n_fastamides) * 100
-        score = float(fields[column_headers.index("score")])
+
+        if "score" in column_headers:
+            score = float(fields[column_headers.index("score")])
+        else:
+            score = 1.0
 
         #print("IO", sequence, start_res)
 
