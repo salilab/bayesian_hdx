@@ -457,17 +457,6 @@ def calculate_shannon_bits(hist):
 
     return base_info - hist_info
 
-def import_output_file(model_file):
-    '''
-    Import an output file 
-    The file will have a header:
-
-    datasources : data_file1, data_file2 # reduced d
-    should have a set of models and the corresponding scores
-    # and a header with certain attributes
-    '''
-    return 0
-
 def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None, plot_prior=True):
     # Input is a standard output model file and the rate bins
     # Should note the sectors as well, along with overlap.
@@ -651,7 +640,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     bins = range(1,maxbin+1)
 
     # What is the optimal figsize?
-    fig, ax = plt.subplots(1, len(resrange), sharey='row', figsize=(20,2))
+    fig, ax = plt.subplots(1, len(resrange), sharey='row', figsize=(10,2))
 
     #print(bins, maxbin)
 
@@ -735,10 +724,16 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
             ax[n].set_frame_on(False)
 
         if true_vals is not None:
+
             #print("TVals", n, nd, true_vals[nd-1], true_vals[nd-1])
-            #for nd in range(len(true_vals)):
+            if nd-1 in true_vals.keys():
                 #print("TVal", nd, true_vals[nd])
-            ax[n].plot((-1, 1), (true_vals[nd-1], true_vals[nd-1]), "k-",  color='green', lw=2)
+
+                ax[n].plot((-1, 1), (true_vals[nd-1], true_vals[nd-1]), "k-",  color='limegreen', lw=2)
+            # How to sort these??
+
+
+
 
 
     ax[0].set_ylabel("Log(Pf)")
@@ -755,7 +750,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     if show:
         plt.show()
 
-def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=False, output_directory=None):
+def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=False, output_directory=None, log_time=False):
     '''
     For each dataset:
       For each peptide:
@@ -765,7 +760,6 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
          3) Write plot to the output directory
     '''
 
-    #print("HI", len(po.get_datasets()))
     state_name_prefix = po.state_name
     if output_directory is None:
         output_directory = "incorporation_plots/"
@@ -778,9 +772,10 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
     #print(po.get_best_scoring_models(num_models, return_pf=True)[0])
     #print(po.get_models(return_pf=True)[0])
     #exit() 
-    mods = po.get_models(return_pf=True)
+    bsms = po.get_best_scoring_models(N=num_models, return_pf=True)
 
-    bsms = [(1.0,[m]) for m in mods]
+
+    #bsms = [(1.0,[m]) for m in mods]
     #bsms = po.get_best_scoring_models(num_models, return_pf=True)
 
     #for gsm in bsms:
@@ -788,13 +783,12 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
 
     # Get the list of datasets used to compute the models
     datasets = po.get_datasets()
-    print(len(datasets))
 
     # Loop over all datasets
     for d in datasets:
         # Loop over all peptides
-
         for pep in d.get_peptides():
+            print(pep.sequence)
             resis = pep.get_observable_residue_numbers()
             #print(resis, pep.get_number_of_observable_amides())
 
@@ -802,11 +796,16 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
             model_deuteration_by_time = {}
             exp_deuteration_by_time = {}
             for tp in pep.get_timepoints():
-                model_deuteration_by_time[tp.time] = []
-                exp_deuteration_by_time[tp.time] = [rep.deut for rep in tp.get_replicates()]
+                if log_time:
+                    t = numpy.log(tp.time)
+                else:
+                    t = tp.time
+                model_deuteration_by_time[t] = []
+                exp_deuteration_by_time[t] = [rep.deut for rep in tp.get_replicates()]
 
             # Loop over all best scoring models
             for gsm in bsms:
+
                 protection_factors = gsm[1][0]
 
                 # Return the deuteration for each residue at each timepoint
@@ -816,21 +815,28 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
                 #print("    score:", gsm[0], "|",  [protection_factors[r-1] for r in resis], [residue_deuterations[30.0][r-1] for r in resis])
                 # Loop over all timepoints in this peptide
                 for tp in pep.get_timepoints():
-                    time = tp.time
+                    if log_time:
+                        time = numpy.log(tp.time)
+                    else:
+                        time = tp.time
                     model_deut = 0
                     for r in resis:
                         #print(r, len(incorporations), incorporations[96], d.times)
                         #print(incorporations[r])
-                        model_deut += incorporations[r][time] #residue_deuterations[time][r]
+                        model_deut += incorporations[r][tp.time] #residue_deuterations[time][r]
                     #print(pep.sequence, time, model_deut, model_deut/len(pep.get_observable_residue_numbers())*100, tp.get_avg_sd())
                     model_deuteration_by_time[time].append(model_deut/len(pep.get_observable_residue_numbers())*100)
 
             welchs_t = 0
             chi = 0
             for tp in pep.get_timepoints():
-                diff = -1*(numpy.average(exp_deuteration_by_time[tp.time])-numpy.average(model_deuteration_by_time[tp.time]))
+                if log_time:
+                    time = numpy.log(tp.time)
+                else:
+                    time = tp.time
+                diff = -1*(numpy.average(exp_deuteration_by_time[time])-numpy.average(model_deuteration_by_time[time]))
                 #welchs_t += diff / math.sqrt(numpy.var(model_deuteration_by_time[tp.time])/len(model_deuteration_by_time[tp.time])+tp.get_sigma()**2/len(exp_deuteration_by_time[tp.time]))
-                chi += diff**2/numpy.average(exp_deuteration_by_time[tp.time])
+                chi += diff**2/numpy.average(exp_deuteration_by_time[time])
             #chi = tools.calculate_peptide_chi(model_deuteration_by_time, exp_deuteration_by_time)
             fig, ax = plot_incorporation_curve(model_deuteration_by_time, exp_deuteration_by_time)
             #print(pep.sequence, chi)
@@ -846,7 +852,8 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
                     os.mkdir(output_directory  + state_name_prefix)
                 except:
                     pass
-                fig.savefig(output_directory  + state_name_prefix+"/"+ str(pep.start_residue) + "_" + pep.sequence + "_NM" + str(num_models) +".png", )
+                print(output_directory  + state_name_prefix+"/"+ str(pep.start_residue) + "_" + pep.sequence + "_NM" + str(num_models) +".png")
+                fig.savefig(output_directory  + state_name_prefix+"/"+ str(pep.start_residue) + "_" + pep.sequence + "_NM" + str(num_models) +".png")
             plt.close(fig)
 
 def plot_incorporation_curve(deuteration_by_time, exp, ax=None, color='blue', plot=False):
