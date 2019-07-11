@@ -4,6 +4,7 @@
 import tools
 import hxio
 import numpy
+import numpy.random
 
 def calculate_percent_d(dataset):
     # Calculates the averaged %D over all timepoints in a peptide.
@@ -15,8 +16,6 @@ def calculate_percent_d(dataset):
             print(">", pep.start_residue, pep.sequence, avg_deut)
         else:
             print("Peptide" + pep.sequence + "has no data")
-
-
 
 def calculate_delta_percent_d(dataset1, dataset2):
     # Simple function takes two datasets and calculates the
@@ -42,7 +41,7 @@ class Dataset(object):
     observable at these conditions.  These "protection_factors" 
     """   
 
-    def __init__(self, name, conditions, sequence, input_file=None, error_estimate=5.0, 
+    def __init__(self, name, conditions, sequence, input_file=None, error_estimate=1.0, 
                     offset=1, number_fast_exchanging_amides=2, percent_deuterium=False):
         self.raw_data_file = input_file
         self.conditions = conditions
@@ -222,13 +221,16 @@ class Dataset(object):
         # Returns the set of times (in seconds) contained in this dataset
         return self.times
 
-    def create_peptide(self, sequence, start_residue, peptide_id=None, sigma=5.0, charge_state=None, retention_time=None):
+    def create_peptide(self, sequence, start_residue, peptide_id=None, sigma=None, charge_state=None, retention_time=None):
         '''
         Manually creates a peptide object
         adds it to the end of Dataset peptide list
 
         Returns the peptide object
         '''
+        if sigma is None:
+            sigma = self.sigma
+
         if peptide_id is None:
             peptide_id = str(len(self.peptides))
         new_peptide = Peptide(self, sequence, start_residue, peptide_id, 
@@ -272,7 +274,7 @@ class Dataset(object):
         peptides = {}
         for pep in self.get_peptides():
             pep_dict = {}
-            print(pep.sequence)
+            #print(pep.sequence)
             pep_dict["sequence"] = pep.sequence
             pep_dict["start_residue"] = pep.start_residue
             pep_dict["charge_state"] = pep.charge_state
@@ -300,6 +302,7 @@ class Dataset(object):
 
         with open(outfile,"w") as f:
             json.dump(dataset,f)
+        self.raw_data_file=outfile
 
         return dataset
 
@@ -336,6 +339,66 @@ class Dataset(object):
                 break
             if p == len(self.get_peptides())-1:
                 raise Warning("Peptide", sequence, start_res, charge_state, "does not exist in this dataset")
+
+
+    def simulate_all_data(self, protection_factors, timepoints, replicates, error):
+        # Remove all timepoints from each peptide and replace with new simulated data
+        # based on the given protection factors
+
+        self.get_intrinsic_rates()
+
+        # clear all peptides
+        for p in self.peptides:
+            p.timepoints = []
+
+        for p in self.peptides:
+            # First, get the rate for each residue in the peptide:
+            rates = []
+            #print(p.start_residue, p.start_residue+len(p.sequence), p.sequence)
+            for i in range(p.start_residue+2,p.start_residue+len(p.sequence)):
+                rates.append(self.intrinsic[i-1]-protection_factors[i-1])
+
+            for tp in timepoints:
+                timepoint = p.add_timepoint(tp)
+                for i in range(replicates):
+                    # Calculate deuteration
+                    deut=0
+                    for r in rates:
+                        deut += tools.calculate_deut(r, tp)
+
+                    pdeut = deut / float(p.get_number_of_observable_amides()) * 100
+                    pdeut += numpy.random.normal(0, pdeut*error/100)
+
+                    #print(p.start_residue, p.sequence, tp, deut, rates)
+                    timepoint.add_replicate(pdeut)
+
+    def get_residue_information_content(self, protection_factors):
+        '''
+        Calculate for all residues, the amount of information at each residue, for each timepoiint and peptide
+
+        For each peptide, the information at Pf = P for a residue is defined as
+        1/(number of observable amides) * Resolving_power(P)
+
+        Where resolving power is the sum over all timepoints, tp, of: 
+            10^[(k_ex/P)*exp(-10^(k_ex/P)*tp)
+        where k_ex is the intrinsic rate of the amide at the dataset conditions (T, pH)
+        '''
+        residue_information = numpy.zeros((len(self.sequence), len(protection_factors)))
+        for r in range(1,len(self.sequence)+1):
+            peptides = self.get_peptides_with_residue(r)
+            for p in peptides:
+                factor = 1.0/p.get_number_of_observable_amides()
+                for tp in p.get_timepoints():
+                    t = tp.time
+                    rps = numpy.zeros(len(protection_factors))
+                    for i in range(len(protection_factors)):
+                        pf = protection_factors[i]
+                        logk = self.intrinsic[r-1] - pf
+                        rate = -1*(10**logk)*t
+                        rps[i] = 10**logk*numpy.exp(rate)
+                    residue_information[r-1][:]+=rps/numpy.linalg.norm(rps)*factor
+
+        return residue_information
 
 
 
@@ -431,7 +494,9 @@ class Peptide(object):
     def get_number_of_observable_amides(self):
         return self.num_observable_amides
 
-    def add_timepoint(self, time, sigma=5.0):
+    def add_timepoint(self, time, sigma=None):
+        if sigma is None:
+            sigma = self.sigma
         if time not in [tp.time for tp in self.timepoints]:
             tp = Timepoint(time, sigma)
             self.timepoints.append(tp)
@@ -625,8 +690,8 @@ class SimulatedData(object):
 
     def create_dataset(self):
         data = Dataset(sequence=self.sequence)
-        for p in self.peptides:
-            print(p)
+        #for p in self.peptides:
+        #    print(p)
 
 
 class Replicate(object):
