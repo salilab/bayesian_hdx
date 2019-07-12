@@ -217,6 +217,26 @@ class MCSampler(object):
             for s in self.states:
                 s.initialize(1)
 
+
+    def run_exponential_temperature_decay(self, tmax=100, tmin=2.0, annealing_steps=200, steps_per_anneal=1, write=False):
+        '''
+        A simulated annealing that starts from high temperature and gradually cools
+        to a low temperature
+        '''
+        import math
+        print("********")
+        print("Starting Exponential Temperature Decay from")
+        print("T =", tmax, "to T =", tmin, "over", annealing_steps, "steps.")
+        print("********")
+        deltaT = math.exp(math.log(tmin/tmax)/annealing_steps)
+        for s in range(annealing_steps):
+            Tm = tmax * (deltaT ** s)
+            for i in range(steps_per_anneal):
+                score, model_avg, accept = self.run_one_step(Tm, write)
+
+            print('Temp: %2.2f | Score: %2.1f' % (Tm,score))
+
+
     def run_benchmark(self):
         import time
         print("Starting Benchmark")
