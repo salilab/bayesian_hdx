@@ -7,14 +7,15 @@ import system
 import numpy
 import math
 import analysis
-from pylab import *
+#from pylab import *
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import scipy
 #from scipy.stats import gaussian_kde
 #from numpy.random import normal
 from scipy.integrate import simps
 import tools
-
    
 
 cdict1 = {'red': ((0.0, 0.0, 0.0),
@@ -555,7 +556,7 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
                 ax[n].fill_betweenx(x,0,arr,facecolor=colors[i],alpha=0.5, lw=0)
                 ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)
                 # Add in lower bar for information content
-                ax[n].barh(bottom=-1*bits+1,width=2*xlim/len(x_lists), height=bits,left=-1*xlim+i*2*xlim/len(x_lists),color=colors[i], alpha=0.7, lw=0)
+                ax[n].barh(y=-1*bits+1,width=2*xlim/len(x_lists), height=bits,left=-1*xlim+i*2*xlim/len(x_lists),color=colors[i], alpha=0.7, lw=0)
                 for yval in range(1, int(numpy.max(d))+1,ytick_rate):
                     ax[n].axhline(y=yval,ls='-', lw=0.5)
 
@@ -711,7 +712,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
                 ax[n].fill_betweenx(x,0,arr,facecolor=colors[i],alpha=0.5, lw=0)
                 ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)   
                 # Add in lower bar for information content
-                ax[n].barh(bottom=-1*bits+minbin,width=2*xlim/len(x_lists), height=bits,left=-1*xlim+i*2*xlim/len(x_lists),color=colors[i], alpha=0.7, lw=0)
+                ax[n].barh(y=-1*bits+minbin,width=2*xlim/len(x_lists), height=bits,left=-1*xlim+i*2*xlim/len(x_lists),color=colors[i], alpha=0.7, lw=0)
                 for yval in range(minbin, maxbin, ytick_rate):
                     ax[n].axhline(y=yval,ls='-', lw=0.5)
             else:
@@ -741,6 +742,8 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     #ax[0].tick_params(axis='y', which='major', labelsize=8)
 
     if outputdir is not None:
+        if not os.path.exists(outputdir):
+            os.makedirs(outputdir)
         if sort_sectors:
             plt.savefig(outputdir+"/protection_factor_distributions_sorted.png", dpi=1000, format="png")
         else:

@@ -127,7 +127,7 @@ def import_HXcolumns(infile, sequence, name="Data", percentD=False, conditions=N
 def import_json(infile, name=""):
     # Imports a json written by Dataset.write_to_file()
     import json
-    print(infile)
+    #print(infile)
     with open(infile) as json_data:
         d = json.load(json_data)
 

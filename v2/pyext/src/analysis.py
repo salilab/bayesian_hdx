@@ -12,8 +12,8 @@ import scipy
 from scipy import stats
 from copy import deepcopy
 import os.path
-from pylab import *
-from matplotlib import *
+#from pylab import *
+#from matplotlib import *
 import sklearn
 
 class Precision(object):
@@ -299,6 +299,8 @@ class Convergence(object):
         all_models = self.bsm1 + self.bsm2
 
         cluster_pofs = []
+        print("Cluster Sizes:")
+        print(" -- Cluster# number_of_models")
         for c in range(len(cluster_centers)):
             # Create a copy of the PO file
             new_po = deepcopy(self.sample1)
@@ -306,7 +308,7 @@ class Convergence(object):
             # Loop over all models in the cluster
             for m in cluster_members[c]:
                 new_po.models.append(all_models[m])
-            print(" --", c, len(cluster_members[c]), len(new_po.models))
+            print(" --", c, len(cluster_members[c]))
             cluster_pofs.append(new_po)
 
         return cluster_pofs
@@ -482,7 +484,7 @@ class ParseOutputFile(object):
     def generate_datasets(self):
         self.datasets=[]
         for f in self.datafiles:
-            print(self.path, f)
+            #print(self.path, f)
             self.datasets.append(hxio.import_json(self.path+f[0]))
 
     def get_models(self, return_pf=False):
@@ -879,7 +881,7 @@ def get_cdf(exp_models):
     exp_model_edf=numpy.empty((len(exp_models),len(exp_models[0])))
     A=numpy.array(exp_models)
     y=numpy.linspace(1./len(exp_models),1,len(exp_models))
-    print(len(exp_models[0]))
+    #print(len(exp_models[0]))
     for i in range(len(exp_models[0])): 
         counts, edges = numpy.histogram(A[:,i], len(A), range=(-6,0), density=False) 
         #print i,A[:,i],counts,numpy.cumsum(counts*1.0/len(A)) 
@@ -891,7 +893,7 @@ def get_chisq(exp_models1, exp_models2, nbins):
     A=numpy.array(exp_models1)
     B=numpy.array(exp_models2)
     #y=numpy.linspace(1./len(exp_models1),1,len(exp_models1))
-    print(len(exp_models1[0]))
+    #print(len(exp_models1[0]))
     for i in range(269,len(exp_models1[0])):
         meanA = numpy.mean(A[:,i])
         ssd = numpy.std(A[:,i])**2 + numpy.std(B[:,i])**2 
@@ -900,7 +902,7 @@ def get_chisq(exp_models1, exp_models2, nbins):
         t = 1.96
         ci = t * sstdev
         dm = meanA - meanB
-        print(i, dm, ci, dm/ci)
+        #print(i, dm, ci, dm/ci)
         #fig=plt.figure()
         #ax1 = fig.add_subplot(111)
         #ax1.plot(range(nbins), countsA)
