@@ -26,6 +26,7 @@ class System(object):
         else:
             self.output = None
 
+
     def add_macromolecule(self, sequence, name=None, initialize_apo=True):
         """ add a Macromolecule to the experiment. Sequence can either be
         a string or a filename.
@@ -154,6 +155,18 @@ class State(object):
         self.output_model = model
         self.has_model = True
         return self.output_model
+
+    def get_exchanging_residues(self):
+        '''
+        Returns a list of residue numbers that exchange 
+        (simply the list of non-proline residues)
+        '''
+        exchanging_residues = []
+        for i in range(len(self.sequence)):
+            if self.sequence[i] != "P":
+                exchanging_residues.append(i+1)
+
+        return exchanging_residues
 
     '''
     def set_scoring_function(self, scoring_function=GaussianNoiseModel):
@@ -432,7 +445,6 @@ class State(object):
                 resis.add(r)
         self.observed_residues = list(resis)
         return self.observed_residues
-
 
     def initialize(self, init_model="random"):
         # Ensure that all components of the state are initialized
