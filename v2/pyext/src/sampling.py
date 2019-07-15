@@ -218,12 +218,20 @@ class MCSampler(object):
                 s.initialize(1)
 
 
-    def run_exponential_temperature_decay(self, tmax=100, tmin=2.0, annealing_steps=200, steps_per_anneal=1, write=False):
+    def run_exponential_temperature_decay(self, tmax=100, tmin=2.0, 
+                                annealing_steps=200, 
+                                steps_per_anneal=1, 
+                                write=False, 
+                                adjacency=10):
         '''
         A simulated annealing that starts from high temperature and gradually cools
         to a low temperature
         '''
         import math
+
+        # Set how far each residue can move.
+        self.residue_sampler.set_adjacency(True, adjacency)
+
         print("********")
         print("Starting Exponential Temperature Decay from")
         print("T =", tmax, "to T =", tmin, "over", annealing_steps, "steps.")
@@ -244,7 +252,6 @@ class MCSampler(object):
         '''       
         times = []
         for i in range(10):
-	    print(i)
             start = time.time()
             self.run(NSTEPS=10)
             end = time.time()
@@ -362,7 +369,10 @@ class MCSampler(object):
             # This should be movable particles
             ###########################
 
-            resis = state.observed_residues
+            if self.sample_only_observed_residues=True:
+                resis = state.observed_residues
+            else:
+                resis = state.residues
 
             shuffle(resis)
             flips = int(max(math.ceil((self.pct_moves * len(resis))/100.), 1))
