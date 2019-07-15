@@ -155,9 +155,11 @@ class State(object):
         self.has_model = True
         return self.output_model
 
+    '''
     def set_scoring_function(self, scoring_function=GaussianNoiseModel):
         self.scoring_function = scoring_function
         self.has_scoring_function = True
+    '''
 
     def get_output_model(self):
         return self.output_model
@@ -226,16 +228,17 @@ class State(object):
         if peptides is None:
             peptides = self.get_all_peptides()
 
-        if len(peptides)==0:
-            print("No peptides imported into this state:", self.state_name)
-
         #initialize to zero coverage for all residues
         self.coverage = numpy.zeros(len(self.sequence))
 
-        for n in range(len(self.sequence)):
-            for p in peptides:
-                if n+1 in p.get_observable_residue_numbers():
-                    self.coverage[n]+=1
+        if len(peptides)==0:
+            print("No peptides imported into state", self.name)
+        else:
+            for n in range(len(self.sequence)):
+                for p in peptides:
+                    if n+1 in p.get_observable_residue_numbers():
+                        self.coverage[n]+=1
+
         return self.coverage
 
     def get_all_peptides(self):
