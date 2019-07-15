@@ -42,7 +42,6 @@ class SampledInt(object):
     def initialize():
         self.propose_move()
 
-
     def set_adjacency(self, is_adjacency, adjacency):
         if is_adjacency:
             self.random = False
@@ -183,7 +182,10 @@ class MCSampler(object):
     # 
     
     '''
-    def __init__(self, sys, initialize=True, sigma_sample_level=None, pct_moves=25, accept_range=(0.3, 0.8)):
+    def __init__(self, sys, initialize=True, 
+                sigma_sample_level=None, 
+                pct_moves=25, 
+                accept_range=(0.3, 0.8)):
         # Ensure that all states in system has a dataset and a model and a scoring function
         '''
         @param sigma_sample_level - None: Don't sample sigmas. "dataset": sample one sigma per dataset. 
@@ -215,7 +217,7 @@ class MCSampler(object):
         # Recalculates all sectors and timepoint data.
         if initialize:
             for s in self.states:
-                s.initialize(1)
+                s.initialize()
 
 
     def run_exponential_temperature_decay(self, tmax=100, tmin=2.0, 
@@ -369,10 +371,10 @@ class MCSampler(object):
             # This should be movable particles
             ###########################
 
-            if self.sample_only_observed_residues=True:
+            if state.output_model.sample_only_observed_residues==True:
                 resis = state.observed_residues
             else:
-                resis = state.residues
+                resis = state.get_exchanging_residues()
 
             shuffle(resis)
             flips = int(max(math.ceil((self.pct_moves * len(resis))/100.), 1))
@@ -380,11 +382,12 @@ class MCSampler(object):
 
             for r in resis[:flips]:
                 # Get the sector that holds this residue           
-                r_sector = state.residue_sector_dictionary[r]
+                #r_sector = state.residue_sector_dictionary[r]
                 # Get the current value for this residue
                 oldval = int(state.output_model.get_model_residue(r))
                 # Propose a new value given the current state
                 oldscore = state.get_score()
+                #print(r, oldval, oldscore, state.output_model.get_model())
                 newval = self.residue_sampler.propose_move(oldval) 
 
                 # Change the residue incorporation values in each sector and calculate the new score:

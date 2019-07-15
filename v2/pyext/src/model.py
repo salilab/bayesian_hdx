@@ -28,7 +28,8 @@ class ResidueGridModel(object):
     @param grid_size - the size of the sampling grid
     @param protection_factors - Boolean. Set to true to calculate protection factors. False to calculate rates only.
     '''
-    def __init__(self, state, grid_size, protection_factors=False, sample_back_exchange=True):
+    def __init__(self, state, grid_size, protection_factors=False, 
+                sample_back_exchange=True, sample_only_observed_residues=True):
         self.state = deepcopy(state)
         self.length = len(state.get_sequence())
 
@@ -41,6 +42,7 @@ class ResidueGridModel(object):
         self.state.set_output_model(self)
         self.calculate_protection_factor_grids()
         self.sample_back_exchange = sample_back_exchange
+        self.sample_only_observed_residues = sample_only_observed_residues
 
     def generate_model(self, random=True, value=1, initialize=False):
         # Using the sequence from the state, generate a random model
@@ -52,7 +54,8 @@ class ResidueGridModel(object):
             raise Exception("ResidueGridModel.generate_model: Value error. Either allow random assignment or set an integer value from 1 to grid_size")
 
         for i in range(self.length):
-            if sequence[i] == "P" or i+1 not in self.state.get_observable_residue_numbers():
+
+            if sequence[i] == "P" or (i+1 not in self.state.get_observable_residue_numbers() and self.sample_only_observed_residues):
                 model[i] = 0
             else:
                 if random:
