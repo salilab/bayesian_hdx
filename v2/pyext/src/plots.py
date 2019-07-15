@@ -712,7 +712,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
                 ax[n].fill_betweenx(x,0,arr,facecolor=colors[i],alpha=0.5, lw=0)
                 ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)   
                 # Add in lower bar for information content
-                ax[n].barh(y=-1*bits+minbin,width=2*xlim/len(x_lists), height=bits,left=-1*xlim+i*2*xlim/len(x_lists),color=colors[i], alpha=0.7, lw=0)
+                #ax[n].barh(y=-1*bits+minbin,width=2*xlim/len(x_lists), height=bits,left=-1*xlim+i*2*xlim/len(x_lists),color=colors[i], alpha=0.7, lw=0)
                 for yval in range(minbin, maxbin, ytick_rate):
                     ax[n].axhline(y=yval,ls='-', lw=0.5)
             else:
