@@ -348,7 +348,12 @@ class MCSampler(object):
             if write:
                 for s in range(len(self.states)):
                     st = self.states[s]
-                    output.write_model_to_file(output_files[s], st, st.output_model.get_masked_model(st.get_observed_residues()), st.score, acceptance, sigmas=True)
+                    if st.output_model.sample_only_observed_residues == True
+                        model = st.output_model.get_masked_model(st.get_observed_residues())
+                    else:
+                        model = st.output_model.get_model()
+
+                    output.write_model_to_file(output_files[s], st, model, st.score, acceptance, sigmas=True)
 
         acceptance_ratio = acceptance_total/NSTEPS
         print("Average acceptance ratio for this run = ", acceptance_ratio, " |  Temp = ", temperature)
