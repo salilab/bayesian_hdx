@@ -573,7 +573,7 @@ def enumerate_fragment(frag, exp_grid, sig, num_models = 1):
     possible_number_combinations = list(combinations_with_replacement(range(n), nbin))
     #all_possible_combinations = list(product(range(n), repeat=nbin))
     score = 0
-    minscore = 1.0*10^34
+    minscore = 1.0*pow(10,34)
     for i in possible_number_combinations:
         if sum(i) == n:
             numbers = list(i)
