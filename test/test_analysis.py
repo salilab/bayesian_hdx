@@ -15,13 +15,13 @@ class TestParseOutputFile(unittest.TestCase):
     ParseOutputFile reads an output file created from a sampler
     '''
 
-    self.output_file = input_dir
+    output_file = input_dir
 
     def test_create_pof(self):
         pass
 
 
-class TestOutputAnalysis(untitest.TestCase):
+class TestOutputAnalysis(unittest.TestCase):
 
     def test_concatenate_output_files(self):
         pass
