@@ -2,6 +2,7 @@
    Classes to handle the HDX data hierarchy
 """
 from __future__ import print_function
+import io
 from scoring import ScoringFunction, GaussianNoiseModel
 import hxio
 import numpy
@@ -36,7 +37,7 @@ class System(object):
         """
 
         # Check that sequence is a string
-        if not isinstance(sequence, basestring):
+        if not isinstance(sequence, str):
             raise Exception("Please input a string or filepath as the sequence input")
 
         # if there is a period, then we will assume that it is a filepath
@@ -186,9 +187,9 @@ class State(object):
     def get_datasets(self):
         return self.data
 
-    def add_perturbation(perturbation, clear=False):
-        if type(perturbations) is tuple:
-            perturbations = [perturbations]
+    def add_perturbation(self, perturbation, clear=False):
+        if type(perturbation) is tuple:
+            perturbations = [perturbation]
         self.perturbations = perturbations
         for pert in self.perturbations:
             if pert[0]=="mutation":
@@ -557,7 +558,7 @@ class Sector(object):
         return amides
 
     def get_coverage(self):
-        return len(peptide_ids)  
+        return len(self.peptide_ids)
 
     def get_length(self):
         return self.length
