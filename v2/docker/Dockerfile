@@ -44,7 +44,7 @@ RUN chmod a+rwx /home/ubuntu/
 RUN mkdir /home/ubuntu/bin
 RUN chown -R ubuntu /home/ubuntu
 USER ubuntu
-ENV PYTHONPATH=${DST}/bayesian_hdx/pyext/src
-ENV PATH=${DST}/bayesian_hdx/bin:$PATH
+ENV PYTHONPATH=${DST}/pyext/src
+ENV PATH=${DST}/bin:$PATH
 
 WORKDIR /data/
