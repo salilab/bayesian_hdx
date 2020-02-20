@@ -33,7 +33,7 @@ RUN apt-get clean all && \
 RUN ln -sfn /usr/bin/python3.6 /usr/bin/python
 RUN mkdir $DST
 
-RUN cd /tpm && \
+RUN cd /tmp && \
     git clone $URL && \
     mv bayesian_hdx/v2/* $DST/ && \
     chmod a+x $DST/bin/* && \
