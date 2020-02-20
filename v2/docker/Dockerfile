@@ -14,7 +14,7 @@ LABEL tags="HDX"
 # Maintainer
 MAINTAINER Roberto Vera Alvarez <r78v10a07@gmail.com>
 
-ENV URL=https://github.com/salilab/bayesian_hdx
+ENV URL=https://github.com/r78v10a07/bayesian_hdx
 ENV DST=/usr/local/bayesian_hdx
 
 USER root
