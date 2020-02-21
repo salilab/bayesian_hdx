@@ -348,7 +348,7 @@ class MCSampler(object):
             if write:
                 for s in range(len(self.states)):
                     st = self.states[s]
-                    if st.output_model.sample_only_observed_residues == True
+                    if st.output_model.sample_only_observed_residues == True:
                         model = st.output_model.get_masked_model(st.get_observed_residues())
                     else:
                         model = st.output_model.get_model()
