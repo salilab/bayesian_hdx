@@ -1,8 +1,0 @@
-//IMP_SWIG_OBJECT(IMP::example, ExampleRestraint, ExampleRestraints);
-IMP_SWIG_DECORATOR(IMP::hdx, HDXRateDecorator, HDXRateDecorators);
-IMP_SWIG_DECORATOR(IMP::hdx, HDXRateBinDecorator, HDXRateBinDecorators);
-//IMP_SWIG_VALUE_TEMPLATE(IMP::example, ExampleTemplateClassD)
-
-
-%include "IMP/hdx/HDXRateDecorator.h" 
-%include "IMP/hdx/HDXRateBinDecorator.h" 
