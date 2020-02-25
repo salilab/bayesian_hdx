@@ -153,6 +153,9 @@ Used to restrain the value of the protection factor, useful for incorporating es
 A prior to represent the distribution of expected protection factors found in globular proteins. The default prior is an empirical function based on a survey of HDX experts (read: we made up a curve that looks reasonable). 
 
 
+The plot of prior distributions can then show you how precise or imprecise the Pf estimates are from just the prior information.
+![Prior distributions](img/cytc_priors.png)
+
 ## 3) Sampling
 
 A single Markov chain can be initiated. Several sampling parameters can be adjusted for the expert user to optimize mixing and obtain the desired acceptance ratios:
