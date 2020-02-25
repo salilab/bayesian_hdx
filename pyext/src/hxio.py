@@ -10,6 +10,70 @@ import os
 import tools
 from itertools import groupby
 
+def import_anum_waters(fname, sequence, name="Data", percentD=True, conditions=None, error_estimate=5.0, offset=0):
+    '''
+    Function to import data from Waters-type .csv output into a Dataset object
+    Waters .csv output has the following columns:
+    'Protein State', 'Start', 'End', 'Sequence', 'Deut Time (sec)', 'maxD', '#D', '%D', 'Conf Interval (#D)', '#Pts', 'Confidence', 'Stddev'
+    '''
+
+    f = open(fname, "r")
+
+    if type(conditions) is not Conditions:
+        print("Standard Conditions used.  Please modify these in the script if you are not at 293K and pH=7")
+        conditions = Conditions()
+
+    line = f.readline()
+
+    # Get column headers
+    column_headers = line.rstrip().split(",")
+
+    datasets = {}
+
+    for line in f.readlines():
+        fields = line.split(",")
+        if len(fields[column_headers.index("%D")].strip())==0:
+            continue
+        #elif fields[column_headers.index("keep")]=="X":
+        #    continue
+        else:
+            state = fields[column_headers.index("Protein State")].strip().split("_")[0]+"_"+fields[column_headers.index("Protein State")].strip().split("_")[1]
+            if state not in datasets.keys():
+                datasets[state] = Dataset(name=state, sequence=sequence, conditions=conditions, error_estimate=error_estimate, offset=offset, input_file=fname)
+            #print("--", line, fields[column_headers.index("%D")].strip())
+            pep_sequence = fields[column_headers.index("Sequence")]
+            start_res = int(fields[column_headers.index("Start")]) + offset
+            if fields[column_headers.index("Deut Time (sec)")]=="FD":
+                time = 10000000
+            else:
+                time = float(fields[column_headers.index("Deut Time (sec)")])
+            if fields[column_headers.index("%D")] == "" or "DIV" in fields[column_headers.index("%D")]:
+                continue
+            else:
+                #print(fields[column_headers.index("%D")])
+                deut = float(fields[column_headers.index("%D")].strip())
+            new_peptide = datasets[state].create_peptide(pep_sequence, start_res)
+
+            if new_peptide is not None:
+                # If the time is 0.0, that's weird.  Ignore that.
+                if time==0.0:
+                    continue
+
+                if deut < 105 and deut > 0.0:  # XXX Hard coded cap on %D value.  Not ideal.
+                    # If timepoint is already in fragment, grab that timepoint
+                    if time in [tp.time for tp in new_peptide.get_timepoints()]:
+                        tp = new_peptide.get_timepoint_by_time(time)
+                    #If not, add a new timepoint at this time.  What to put for sigma??
+                    else:
+
+                        tp = new_peptide.add_timepoint(time)
+         
+                    # add the deuteration value as a replicate.
+                    # Any other replicate information from the file should be added at this step.
+                    tp.add_replicate(deut)
+                #new_peptide.add_timepoint(time)
+
+    return datasets
 
 
 def add_peptide_to_dataset(dataset, peptide_sequence, start_residue, charge_state=None):
@@ -25,7 +89,7 @@ def add_peptide_to_dataset(dataset, peptide_sequence, start_residue, charge_stat
         #else:
         #    print("Skipping this peptide")
                     # If it is there...grab that peptide
-    else:
+    else:   
         new_peptide = next((pep for pep in dataset.get_peptides() if pep.sequence==peptide_sequence and pep.start_residue==start_residue and pep.charge_state==charge_state), None)
 
     return new_peptide
@@ -40,7 +104,7 @@ def read_fasta(fasta_file):
     for header in entries:
         # drop the ">" and grab only the first word.
         # Allow for dashes, underscore and colons (PDB)
-        fields = re.findall(r'[A-Za-z0-9-_:]+', next(header))
+        fields = re.findall(r'[A-Za-z0-9-_:]+', header.next())
 
         # Some fasta files have the header form "">gi|fasta_id|gb"
         if fields[0] == 'gi' and fields[2]=='gb':
@@ -49,7 +113,7 @@ def read_fasta(fasta_file):
             header = fields[0]
 
         # join all subsequent sequence lines into one string.
-        seq = "".join(s.strip() for s in next(entries))
+        seq = "".join(s.strip() for s in entries.next())
         yield header, seq
 
 
@@ -62,12 +126,12 @@ def import_MSStudio(infile, state=None):
     data = Dataset(conditions = conditions, input_file=infile)
 
 
-def import_HXcolumns(infile, sequence, name=None, percentD=False, conditions=None, error_estimate=5.0, n_fastamides=2, offset=0):
-    """ Function for converting a set of HX columns intoa Dataset object
+def import_HXcolumns(infile, sequence, name="Data", percentD=False, conditions=None, error_estimate=5.0, n_fastamides=2, offset=0):
+    """ Function for converting a set of HX columns into a Dataset object
     """
 
     if type(conditions) is not Conditions:
-        print("Standard Conditions used.  Please modify these in the script if you are not at 283K and pH=7")
+        print("Standard Conditions used.  Please modify these in the script if you are not at 293K and pH=7")
         conditions = Conditions()
 
     f = open(infile,"r")
@@ -78,15 +142,21 @@ def import_HXcolumns(infile, sequence, name=None, percentD=False, conditions=Non
     column_headers = line.rstrip().split(",")  # Pre-set to None.  See #XXXX
 
     for line in f.readlines():
-
         fields = line.split(",")
         sequence = fields[column_headers.index("peptide_seq")]
         start_res = int(fields[column_headers.index("start_res")]) + offset
         time = float(fields[column_headers.index("time")])
         deut = float(fields[column_headers.index("D_inc")])
+        #print("-----", start_res, column_headers.index("start_res"), offset, line)
         if not percentD:
             deut = deut / tools.calculate_number_of_observable_amides(sequence, n_fastamides) * 100
-        score = float(fields[column_headers.index("score")])
+
+        if "score" in column_headers:
+            score = float(fields[column_headers.index("score")])
+        else:
+            score = 1.0
+
+        #print("IO", sequence, start_res)
 
         new_peptide = dataset.create_peptide(sequence, start_res)
 
@@ -104,7 +174,7 @@ def import_HXcolumns(infile, sequence, name=None, percentD=False, conditions=Non
                 #If not, add a new timepoint at this time.  What to put for sigma??
                 else:
                     tp = new_peptide.add_timepoint(time)
-
+     
                 # add the deuteration value as a replicate.
                 # Any other replicate information from the file should be added at this step.
                 tp.add_replicate(deut, score=score)
@@ -119,8 +189,8 @@ def import_HXcolumns(infile, sequence, name=None, percentD=False, conditions=Non
 def import_json(infile, name=""):
     # Imports a json written by Dataset.write_to_file()
     import json
-
-    with open(infile) as json_data:
+    #print(infile)
+    with open(infile, "rb") as json_data:
         d = json.load(json_data)
 
     cond_dict = d["conditions"]
@@ -139,30 +209,25 @@ def import_json(infile, name=""):
 
     for pep in pep_dict:
         p = pep_dict[str(pep)]
-        peptide = dataset.create_peptide(p["sequence"], p["start_residue"],
-                            peptide_id=pep,
-                            charge_state=p["charge_state"],
+        peptide = dataset.create_peptide(p["sequence"], p["start_residue"], 
+                            peptide_id=pep, 
+                            charge_state=p["charge_state"], 
                             retention_time=p["retention_time"],
                             sigma=p["sigma"])
         tp_dict = p["timepoints"]
         for tp in tp_dict:
             timepoint = peptide.add_timepoint(tp_dict[str(tp)]["time"], tp_dict[str(tp)]["sigma"])
             reps = tp_dict[str(tp)]["replicates"]
+            #print(str(tp), reps)
             for rep in reps:
-                timepoint.add_replicate(reps[str(rep)]["deut"], experiment_id=reps[str(rep)]["experiment_id"],
+                timepoint.add_replicate(reps[str(rep)]["deut"], experiment_id=reps[str(rep)]["experiment_id"], 
                                 score=reps[str(rep)]["reliability"], rt=reps[str(rep)]["rt"])
 
     return dataset
 
 
-
-
-
-def get_peptide_information(line):
-    pass
-
-
-def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
+def import_HDXWorkbench(infile, macromolecule=None, name="Data", sequence=None, error_estimate=5.0, n_fastamides=2, offset=None,
+                    max_t=36000):
     '''
     HDXWorbench files are different because they contain information from two experiments.
     They recieve a macromolecule rather than a single state and will create
@@ -194,18 +259,25 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             conditions.temperature = float(value)+273.15
         if param=="Offset":
             conditions.offset = int(value)
+            if offset is not None:
+                conditions.offset = offset
         if param=="Deuterium solution concentration":
             conditions.saturation = float(value)
         if param=="Recovery estimate":
             conditions.recovery = float(value)
         if param=="Experiment Protein Sequence":
             file_sequence = str(value)
-            if file_sequence != sequence and sequence is not None:
-                print("WARNING: Sequence in HDXWorkbench file does not match inputted sequence")
+            if sequence is not None and len(file_sequence) != len(sequence):
+                for i in range(len(sequence)):
+                    if file_sequence[i] != sequence[i]:
+                        print("WARNING: Sequence in HDXWorkbench file does not match inputted sequence at position", i+1)
+                        print("   Workbench file:", file_sequence[i])
+                        print("   System sequence:", sequence[i])
             sequence = file_sequence.strip()
         if param=="Experiment name":
             name = str(value).replace(" ","_")
         line=f.readline()
+
     states = set()
     for line in f:
 
@@ -218,22 +290,22 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             column_headers = line.split(",")
             continue
 
-        # This is a consolidated fragment entry. Just grab the state names for now
+        # This is a consolidated fragment entry. Just grab the state names for now 
         # (only two states in current format).
         if len(line.split(',')) >= 1 and column_headers != None and line.split(',')[column_headers.index("percentd_replicate")]=="NA" and len(states)==0:
-
-
+            
+            
             states.add(line.split(',')[column_headers.index("sample1_name")].replace(" ","_"))
             states.add(line.split(',')[column_headers.index("sample2_name")].replace(" ","_"))
 
             # Now create the different dataset
             datasets=[]
             for s in states:
-                d = Dataset(name=s, sequence=sequence, conditions=conditions, error_estimate=sigma0, input_file=infile, percent_deuterium=True)
+                d = Dataset(name=s, sequence=sequence, conditions=conditions, error_estimate=error_estimate, input_file=infile, percent_deuterium=True)
                 datasets.append(d)
 
         #############################################################
-        #  This is replicate data.
+        #  This is replicate data. 
         #############################################################
         if len(line.split(',')) >= 1 and column_headers != None and line.split(',')[column_headers.index("percentd_replicate")]!="NA":
             # First see if it was discarded:
@@ -241,14 +313,20 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
             if discarded==True or discarded=="T" or discarded == "true" or discarded == "True" or discarded == "TRUE":
                 continue
 
-            # If not, get the peptide seq / start
+            # If not, get the peptide seq / start 
             # ********** Also, potentially other parameters *************
             fields = line.split(",")
             charge_state = int(fields[column_headers.index("charge")])
-            peptide_sequence = fields[column_headers.index("peptide")]
-            start_residue = int(fields[column_headers.index("start")])
+
+            start_residue = int(fields[column_headers.index("start")])+conditions.offset
             state_name = fields[column_headers.index("sample")].replace(" ","_")
             replicate_id = int(fields[column_headers.index("replicate")])
+            peptide_sequence = fields[column_headers.index("peptide")]
+
+            # Use this hack to remove peptide modification flags
+            if "[" in peptide_sequence:
+                seq = peptide_sequence.split("[")[0]
+                peptide_sequence = seq
 
             try:
                 replicate_score = float(fields[column_headers.index("score_replicate")])
@@ -267,22 +345,22 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
                 if state_name == data.name:
                     # If the peptide is not there...create the peptide
                     is_pep_in, new_peptide = data.is_this_peptide_in_dataset(peptide_sequence, start_residue, charge_state)
-
+                    
                     if new_peptide is None:
                         new_peptide = data.create_peptide(sequence=peptide_sequence, start_residue=start_residue, charge_state=charge_state)
-            print("XX", state_name, replicate_id, peptide_sequence, charge_state, len(data.get_peptides()), is_pep_in)
+            #print("XX", state_name, replicate_id, peptide_sequence, charge_state, new_peptide)            
             #print("Replicate", new_peptide)
             # Now, once the we know the peptide is there (or has just been created), add the data
             if new_peptide is not None:
                 time = float(line.split(',')[column_headers.index("timepoint")].replace("s",""))
 
                 # If the time is 0.0, that's weird.  Ignore that.
-                if time==0.0:
+                if time==0.0 or time > max_t:
                     continue
 
                 deut=float(line.split(',')[column_headers.index("percentd_replicate")])
 
-                if deut < 105:  # XXX Hard coded cap on %D value.  Not ideal.
+                if deut < 155:  # XXX Hard coded cap on %D value.  Not ideal.
                     new_timepoint=True
 
                     # If timepoint is already in fragment, grab that timepoint
@@ -291,7 +369,7 @@ def import_HDXWorkbench(infile, macromolecule=None, sequence=None, sigma0=5.0):
                     #If not, add a new timepoint at this time.  What to put for sigma??
                     else:
                         tp = new_peptide.add_timepoint(time)
-
+         
                     # add the deuteration value as a replicate.
                     # Any other replicate information from the file should be added at this step.
                     tp.add_replicate(deut, experiment_id=replicate_id, score=replicate_score, rt=replicate_rt)
@@ -390,12 +468,9 @@ class HDXWorkbench(object):
                                 print("Fragment ", frag_seq, "created for state", s.state_name)
                             else:
                                 print("Skipping this fragment")
-                        else:  #if it is not,
+                        else:  #if it is not, 
                             state_frag=next((f for f in s.frags if f.seq==frag_seq and f.start_res==start_res), None)
-                            #print "State not created", s.state_name, "created for fragment", frag_seq
-                   # elif state_frag==None:
-                    #    print("Error finding fragment",frag_seq," in State,", s.state_name)
-                        #exit()
+
                 if state_frag is not None:
                     self.add_timepoint_to_frag(state_frag, column_headers, line, default_sig = sigma0, empirical_sig=True)
                     #print state_frag.timepoints[-1].time, state_frag.timepoints[-1].replicates[-1].deut
@@ -454,7 +529,7 @@ class HDXWorkbench(object):
             #If not, add a new timepoint at this time.
             if new_timepoint==True:
                 tp=frag.add_timepoint(time)
-
+ 
             # add the deuteration value.
             # Any other replicate information from the file should be added at this step.
             tp.add_replicate(deut)#, temp=self.temp, sat=self.theta, recovery=self.recovery)
@@ -462,13 +537,13 @@ class HDXWorkbench(object):
             if empirical_sig==True and len(tp.replicates) > 2:
                 avg, sd = tp.get_avg_sd()
                 #print(len(tp.replicates), sd)
-                tp.sig = sd
+                tp.sig = sd          
             else:
                 tp.sig = default_sig
 
 class HDXColumns(object):
     '''
-    Class for inputting HDX data from a simple file for a single state
+    Class for inputting HDX data from a simple file for a single state 
     Takes as input a file with columns:
     # peptide_seq, start_res, end_res, time, D_inc
     '''
@@ -501,7 +576,7 @@ class HDXColumns(object):
                     print("Fragment", frag_seq, "created for state", s.state_name)
                 else:
                     print("Skipping this fragment")
-            else:  #if it is not,
+            else:  #if it is not, 
                 state_frag=next((f for f in s.frags if f.seq==frag_seq and f.start_res==start_res), None)
 
             # If this is not percentD, we want to divide D incorporation by number of amides in fragment
@@ -528,7 +603,7 @@ class HDXColumns(object):
             #If not, add a new timepoint at this time.
             if new_timepoint==True:
                 tp=frag.add_timepoint(time)
-
+ 
             # add the deuteration value.
             # Any other replicate information from the file should be added at this step.
             tp.add_replicate(deut)#, temp=self.temp, sat=self.theta, recovery=self.recovery)
@@ -548,35 +623,53 @@ class Output(object):
     '''
     Class for reading and writing output files from the method
     '''
-    def __init__(self, system, output_directory, prefix="", noclobber=True):
+    def __init__(self, system, output_directory, noclobber=True):
         self.system = system
         self.output_directory = output_directory
+        self.noclobber = noclobber
+        self.output_model_files = []
         if os.path.exists(output_directory):
             if noclobber:
                 raise Exception("Output directory " + output_directory + " already exists. Exiting.")
             #else:
             #    raise Warning("Output directory " + output_directory + " already exists. Results will be overwritten")
         else:
-            os.mkdir(output_directory)
+            os.makedirs(output_directory)
+
+    def change_output_directory(self, newdir, remove=True):
+        if remove:
+            shutil.rmtree(self.output_directory)
+
+        self.output_directory = newdir
+
+        if os.path.exists(self.output_directory):
+            if self.noclobber:
+                raise Exception("Output directory " + output_directory + " already exists. Exiting.")
+            #else:
+            #    raise Warning("Output directory " + output_directory + " already exists. Results will be overwritten")
+        else:
+            os.mkdir(self.output_directory)
 
     def initialize_output_model_file(self, state, grid):
         # The output model file should contain:
-        # list of values that relate grid values to
+        # list of values that relate grid values to 
         # sigma_sampler peptide
-        # 0 0 2 3 4 4 9 4 9 | score ||
+        # 0 0 2 3 4 4 9 4 9 | score || 
 
-        output_model_file = self.output_directory+"/models_scores_sigmas-" + state.name +".dat"
+        self.output_model_files.append(self.output_directory+"/models_scores_sigmas-" + state.name +".dat")
 
-        f = open(output_model_file, "w")
+        f = open(self.output_model_files[-1], "w")
         f.write("&&*&%&*&& HX Modeling Output File &&*&%&*&&\n")
         f.write("Molecule_Name : " + state.macromolecule.name + "\n")
         f.write("State : " + state.name + "\n")
+        f.write("Sequence : " + state.macromolecule.get_sequence())
         f.write("\n")
         # Datasets
         f.write("### Datasets used | error_estimate\n")
         for d in state.data:
             if d.raw_data_file is not None:
-                f.write("# " +"./datasets/"+ state.macromolecule.name +"_" + state.name + "_" + d.name + ".hxd" + " | "+ d.raw_data_file + " | " + str(d.sigma0) + "\n")
+                print(state.macromolecule.name, state.name, d.name, d.raw_data_file, d.sigma0)
+                f.write("# " +"/datasets/"+ state.macromolecule.name +"_" + state.name + "_" + d.name + ".hxd" + " | "+ str(d.raw_data_file) + " | " + str(d.sigma0) + "\n")
         f.write("\n")
         # Sectors
         f.write("@@@ Sector Residues and Coverage\n")
@@ -597,8 +690,8 @@ class Output(object):
         f.write("\n")
         f.write("grid_size : " + str(state.output_model.grid_size) + "\n")
         # Protection Factor Grids
-        f.write("$$$ Residue PF Grids\n")
-        f.write("$ Residue_number | protection_factors\n")
+        f.write("$$$ Residue PF Grids\n")     
+        f.write("$ Residue_number | protection_factors\n") 
         pf_grids = state.output_model.pf_grids
         for i in state.get_observed_residues():
             string = "$ "+str(i)+" | "
@@ -630,7 +723,7 @@ class Output(object):
         for i in model:
             outstring += str(int(i))+" "
         outstring += "| " + str(score) + " | " + str(acceptance) + " || "
-
+        print(outstring)
         if sigmas:
             for d in state.data:
                 for tp in d.get_all_timepoints():
@@ -640,10 +733,13 @@ class Output(object):
 
         f.close()
 
+    def get_output_files(self):
+        return self.output_model_files
 
     def get_output_file(self, state):
-        return self.output_directory+"/models_scores_sigmas-" + state.name +".dat"
-
+        for fn in self.output_model_files:
+            if fn.split("-")[-1].split(".")[0] == state.name:
+                return fn
 
     def write_model_to_file(self, f, state, model, score, acceptance, sigmas=True):
 
@@ -658,3 +754,6 @@ class Output(object):
                     outstring += str(tp.get_sigma()) + " "
 
         f.write(outstring + "\n")
+
+
+

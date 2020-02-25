@@ -2,18 +2,13 @@
 Test features revolving around data handling
 '''
 from __future__ import print_function
-import unittest
-import os
-import numpy
-import utils
-
-TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-utils.set_search_paths(TOPDIR)
-
 import system
 import data
 import tools
 import hxio
+import unittest
+import os
+import numpy
 
 
 class TestDataset(unittest.TestCase):
@@ -50,7 +45,6 @@ class TestDataset(unittest.TestCase):
             if numpy.isfinite(rates[i]):
                 self.assertAlmostEqual(rates[i], std_rates[i], places=4)
 
-    @unittest.expectedFailure
     def test_peptides(self):
 
         d = self.initialize_dataset()
@@ -64,9 +58,14 @@ class TestDataset(unittest.TestCase):
 
         p3 = data.Peptide(d, "LALA", 3, None)
         d.add_peptide(p3)
+        self.assertEqual(len(d.get_peptides()), 2)
+
+        p4 = data.Peptide(d, "LAND", 5, None)
+        d.add_peptide(p4)
         self.assertEqual(len(d.get_peptides()), 3)
 
-    @unittest.expectedFailure
+
+
     def test_calculate_protection_factors(self):
         d = self.initialize_dataset()
         p = d.create_peptide("LALA", start_residue=1)
@@ -75,16 +74,19 @@ class TestDataset(unittest.TestCase):
         threshold = 0.01
         bounds = d.calculate_observable_rate_bounds(threshold=threshold)
         set_bounds = (numpy.log10(-numpy.log(1-threshold)/1000), numpy.log10(-numpy.log(threshold)/10))
-        self.assertAlmostEqual(bounds, set_bounds)
+        self.assertAlmostEqual(bounds[0], set_bounds[0])
+        self.assertAlmostEqual(bounds[1], set_bounds[1])
 
         threshold = 0.05
         bounds = d.calculate_observable_rate_bounds(threshold=threshold)
         set_bounds = (numpy.log10(-numpy.log(1-threshold)/1000), numpy.log10(-numpy.log(threshold)/10))
-        self.assertAlmostEqual(bounds, set_bounds)
+        self.assertAlmostEqual(bounds[0], set_bounds[0])
+        self.assertAlmostEqual(bounds[1], set_bounds[1])
 
         obs_pfs = d.calculate_observable_protection_factors()
 
         self.assertEqual(obs_pfs[0][0], numpy.inf)
+
         self.assertAlmostEqual(obs_pfs[1][0], 2.5554004223717413)
         self.assertAlmostEqual(obs_pfs[3][1], 4.7018428308264344)
 

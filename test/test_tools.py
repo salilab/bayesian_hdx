@@ -2,14 +2,9 @@
 Test features revolving around data handling
 '''
 from __future__ import print_function
+import tools
 import unittest
 import os
-import utils
-
-TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-utils.set_search_paths(TOPDIR)
-
-import tools
 
 
 
@@ -18,7 +13,7 @@ class TestDataset(unittest.TestCase):
     def test_get_neighbor_effects(self):
         # Test the intrinsic neighbor effects
         # Make sure that the pH and temp dependence formulas work
-        # All values are compared to those calculated from the 
+        # All values are compared to those calculated from the
         # Englander EXCEL worksheet: FBMME_HD.XLS (20-Jan-10 update)
 
         ne = tools.get_residue_neighbor_effects("D", 8.5, 283)
@@ -60,7 +55,7 @@ class TestDataset(unittest.TestCase):
         seq = "LALALAND"
         rates=tools.get_sequence_intrinsic_rates(seq, pH=7.0, T=293)
         std_rates = [0., 107.6226, 1.1108, 2.5817, 1.1108, 2.5817, 12.9391, 0.1751]
-        
+
         for i in range(len(rates)):
             self.assertAlmostEqual(rates[i], std_rates[i], places=3)
 
@@ -85,7 +80,7 @@ class TestDataset(unittest.TestCase):
 
 
         seq = "CAPTAINAMERICA"
-    
+
     def test_calculate_deut(self):
         # Probably the most used function.  Better make sure it's right!!
         rate = -1

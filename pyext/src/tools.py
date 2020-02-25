@@ -1,7 +1,7 @@
 """
    Useful tools for HDX and MS data analysis
 
-   Can be used as a standalone library outside of IMP
+   Can be used as a standalone library outside of IMP 
    and the RResolvedHX
 """
 
@@ -10,7 +10,6 @@ import numpy
 import numpy.random
 import scipy
 import math
-#import system
 
 AA_list = "ARNDCQEGHILKMFPSTWYV"
 
@@ -117,32 +116,31 @@ ElementMasses = {
     #
     # Data from https://www.ncsu.edu/chemistry/msf/pdf/IsotopicMass_NaturalAbundance.pdf
     #
-    # Original references:
+    # Original references: 
     # The isotopic mass data is from:
-    #   G. Audi, A. H. Wapstra Nucl. Phys A. 1993, 565, 1-65
-    #   G. Audi, A. H. Wapstra Nucl. Phys A. 1995, 595, 409-480.
+    #   G. Audi, A. H. Wapstra Nucl. Phys A. 1993, 565, 1-65 
+    #   G. Audi, A. H. Wapstra Nucl. Phys A. 1995, 595, 409-480. 
     # The percent natural abundance data is from the 1997 report of the IUPAC Subcommittee for Isotopic
-    #   Abundance Measurements by K.J.R. Rosman, P.D.P. Taylor Pure Appl. Chem. 1999, 71, 1593-1607.
+    #   Abundance Measurements by K.J.R. Rosman, P.D.P. Taylor Pure Appl. Chem. 1999, 71, 1593-1607. 
 
     "C" : [(12.000000, 98.93), (13.003355, 1.07)],
     "H" : [(1.007825, 99.9885), (2.14101, 0.0115)],
     "N" : [(14.0030764, 99.632), (15.000109, 0.368)],
     "O" : [(15.994915, 99.757), (16.999132, 0.038), (17.999160, 0.205)],
     "S" : [(31.972071, 94.93), (32.97158, 0.76), (33.967867, 4.29), (35.967081, 0.02)]
-
 }
 
 
 
-def calc_intrinsic_rate(Laa, Raa, pH, T, La2="A", Ra2="A", log=False):
-    ''' Calculates random coil hydrogen exchange rate for amide cooresponding to side chain Raa
+def calc_intrinsic_rate(Laa, Raa, pH, T, La2="A", Ra2="A", log=False, forward=True):
+    ''' Calculates random coil Hydrogen to Deuterium exchange rate for amide corresponding to side chain Raa
     @param Laa - amino acid letter code N-terminal to amide
     @param Raa - amino acid letter of amide
     @param pH - The pH of the experiment
     @param T - Temperature of the experiment
 
     Equation and constants derived from Bai, Englander (1980)
-    '''
+    ''' 
 
     if Raa=="P" or Raa=="CT" or Raa=="NT" or Laa=="NT":
         return 0
@@ -151,18 +149,26 @@ def calc_intrinsic_rate(Laa, Raa, pH, T, La2="A", Ra2="A", log=False):
     pKcAsp = 4.48
     pKcGlu = 4.93
     pKcHis = 7.4
-    ka = 0.694782306
-    kb = 187003075.7
-    kw = 0.000527046
     R = 1.987
     EaA = 14000
     EaB = 17000
     EaW = 19000
-    EaAsp = 1000
     EaGlu = 1083
     EaHis = 7500
-    # the pD is different than the pH by +0.4 units
-    pDcorr = pH+0.4
+    if forward:
+        EaAsp = 1000
+        # the pD is different than the pH by +0.4 units
+        pDcorr = pH+0.4
+        ka = 0.694782306
+        kb = 187003075.7
+        kw = 0.000527046
+    else:
+        EaAsp = 960
+        # the pD is different than the pH by +0.4 units
+        pDcorr = pH
+        ka = 0.4186477
+        kb = 166666666.6
+        kw = 0.0004186477
 
     inv_dTR = (1./T-1./293)/R
 
@@ -201,17 +207,17 @@ def calculate_number_of_observable_amides(inseq, n_fastamides=2):
     num_prolines = inseq.count('P', n_fastamides) + inseq.count('p', n_fastamides)
     return len(inseq) - num_prolines - n_fastamides
 
-def get_sequence_intrinsic_rates(seq, pH, T, log=False):
+def get_sequence_intrinsic_rates(seq, pH, T, log=False, forward=True):
     i_rates = numpy.zeros(len(seq))
-    i_rates[0] = calc_intrinsic_rate("NT", seq[0], pH, T)
-    i_rates[1] = calc_intrinsic_rate(seq[0], seq[1], pH, T, La2="NT")
+    i_rates[0] = calc_intrinsic_rate("NT", seq[0], pH, T, forward=forward)
+    i_rates[1] = calc_intrinsic_rate(seq[0], seq[1], pH, T, La2="NT", forward=forward)
     for n in range(2, len(seq)-1):
         #print(n, seq[n],seq[n+1])
         L = seq[n-1]
         R = seq[n]
-        i_rates[n] = calc_intrinsic_rate(L, R, pH, T)
+        i_rates[n] = calc_intrinsic_rate(L, R, pH, T, forward=forward)
 
-    i_rates[-1] = calc_intrinsic_rate(seq[-2], seq[-1], pH, T, Ra2="CT")
+    i_rates[-1] = calc_intrinsic_rate(seq[-2], seq[-1], pH, T, Ra2="CT", forward=forward)
     if log:
         # Suppress divide by zero error.
         with numpy.errstate(divide='ignore'):
@@ -263,15 +269,23 @@ def calculate_peptide_mass(string):
 
     return mass
 
+def calculate_peptide_chi(deuteration_by_time, exp, sigmas=None):
+    # Given a set of deuterations at each timepoint,
+    # as well as experimental results
+    #
+    # If timepoint sigmas are included, utilize those as chi sigmas.
+    #
+    return 0
+
 def calculate_simple_deuterium_incorporation(rate, time):
     # Calculates the deuterium incorporation for a log(kex)
     # at time = t (seconds) assuming full saturation
-    return 1 - math.exp(-1*10**rate*time)
+    return 1 - math.exp(-1*(10**rate)*time)
 
 def get_residue_deuteration_at_each_timepoint(dataset, protection_factors):
     # Returns the deuterium incorporation for each residue at each timepoint in
     # the given dataset and given protection factors
-    timepoints = dataset.get_set_of_timepoints()
+    timepoints = dataset.get_all_timepoints()
     deuterations_by_time = {}
 
     for tp in timepoints:
@@ -280,32 +294,53 @@ def get_residue_deuteration_at_each_timepoint(dataset, protection_factors):
             if math.isnan(dataset.intrinsic[i]) or i == numpy.inf or i == -1 * numpy.inf:
                 deuterations.append(0)
             else:
-
-                log_kex = dataset.intrinsic[i] - protection_factors[i]
+                log_kex = dataset.intrinsic[i] - protection_factors[i] 
                 # Deuterium incorporation is scaled by the amount of deuterium in solution
                 deut = calculate_simple_deuterium_incorporation(log_kex, tp.time) * dataset.conditions.saturation
                 deuterations.append(deut)
-            #print(log_kex, t.time, deut)
         tp.set_deuteration(deut)
         deuterations_by_time[tp.time] = deuterations
-        #print(deuterations_by_time)
 
     return deuterations_by_time
 
-def calculate_incorporation(intrinsic, protection_factors, timepoints):
+def calculate_incorporation(intrinsic, protection_factors, timepoints, offset=0):
     if len(intrinsic) != len(protection_factors):
         raise Exception("Intrinsic exchange factors and protection factor list not the same length")
-
+    # incorporations is a dictionary of dictionaries, with the first dictionary keyed by residue number and the second 
+    # It is indexed by residue number (1 = 1)
+    #
+    # res_incorps is keyed by timepoint
     incorporations = {}
     for n in range(len(intrinsic)):
+
         res_incorps = {}
         for tp in timepoints:
-            log_kex = intrinsic[n] - protection_factors[n]
-            res_incorps[tp] = calculate_simple_deuterium_incorporation(log_kex, tp)
-
-        incorporations[n+1] = res_incorps
+            if protection_factors[n] == -1:
+                res_incorps[tp] = 0
+            else:
+                log_kex = intrinsic[n] - protection_factors[n]
+                res_incorps[tp] = calculate_simple_deuterium_incorporation(log_kex, tp)
+                #print("||||||||", intrinsic[n], protection_factors[n], log_kex, tp, res_incorps[tp])
+        incorporations[n+1+offset] = res_incorps
 
     return incorporations
+
+def get_peptides_chi_to_models(peptides, protection_factors):
+    chis = numpy.empty(len(peptides))
+    for p in range(len(peptides)):
+        pep = peptides[p]
+        p_chi = 0
+        nrep = 0
+        for tp in pep.get_timepoints():
+            deut = get_timepoint_deuteration(pep, tp.time, protection_factors) / pep.get_number_of_observable_amides()
+            for r in tp.get_replicates():
+                p_chi+=(r.deut-deut)**2/tp.sigma
+                nrep += 1
+        if nrep == 0:
+            chis[p] = 0.0
+        else:
+            chis[p] = p_chi/nrep
+    return chis
 
 def get_peptide_deuteration(peptide, protection_factors):
     deuts = {}
@@ -314,42 +349,12 @@ def get_peptide_deuteration(peptide, protection_factors):
     return deuts
 
 def get_timepoint_deuteration(peptide, time, protection_factors):
+    deut = 0
     for r in peptide.get_observable_residue_numbers():
         pf = protection_factors[r-1]
         kr = peptide.dataset.intrinsic[r-1]
         deut += calculate_simple_deuterium_incorporation(kr - pf, time) * peptide.dataset.conditions.saturation
     return deut
-
-def get_residue_peptide_deuteration_at_each_timepoint(sequence, peptides, protection_factors):
-    # Returns the deuterium incorporation for each residue at each timepoint in
-    # the given dataset and given protection factors
-    # deuterations_by_time = {}
-
-    for pep in peptides:
-        dataset = pep.dataset
-        #print(pep.sequence, pep.get_observable_residue_numbers())
-        for tp in pep.get_timepoints():
-            total_deut = 0
-            for i in pep.get_observable_residue_numbers():
-
-                if dataset.intrinsic[i-1] * 0 == 0:
-                #if math.isnan(dataset.intrinsic[i-1]) or protection_factors[i-1] == numpy.inf or protection_factors[i-1] == -1 * numpy.inf:
-                #    p = 0
-                #else:
-                    log_kex = dataset.intrinsic[i-1] - protection_factors[i-1]
-                    # Deuterium incorporation is scaled by the amount of deuterium in solution
-                    deut = calculate_simple_deuterium_incorporation(log_kex, tp.time) * dataset.conditions.saturation
-                    #print(i, dataset.intrinsic[i-1], protection_factors[i-1], log_kex, deut)
-                    total_deut += deut
-                else:
-                    p = 0
-            #print(pep.sequence, tp.time, total_deut)
-            tp.set_deuteration(total_deut)
-            #deuterations_by_time[tp.time] = deuterations
-            #print(deuterations_by_time)
-
-        #return deuterations_by_time
-
 
 def calc_peptide_isotopic_distribution(string, threshold = 0.1):
     ''' Calculates the natrual isotopic distribution of a peptide
@@ -367,20 +372,27 @@ def calc_peptide_isotopic_distribution(string, threshold = 0.1):
 
 
 def calculate_deut(rate, time):
-    return 1-math.exp(-10**rate*time)
+    return 1-math.exp(-1*(10**rate)*time)
+
+def simulate_peptides_data(seq, exch_rates, st_end_tups, timepoints, replicates=3, obs_error=5, percentD=True):
+
+    peptides = []
+    for i in st_end_tups:
+        peptides.append(simulate_peptide_data(seq[i[0]-1:i[1]], i[0], timepoints, replicates, obs_error, percentD))
+
+    return peptides
 
 
 def simulate_peptide_data(seq, start_res, exch_rates, timepoints, replicates=3, obs_error=5, percentD=True):
     '''
-    For a list of exchange rates, calculate simulated data including
+    For a list of exchange rates, calculate simulated data including 
     gaussian noise at each timepoint.
     @param exch_rates - list of exchange rates for a set of contiguous residues
     @param timepoints - list of integer timepoints (in seconds)
     @param error - Standard deviation (in total D units)
 
-    Returns a list of lists of 2D incorporation values.
+    Returns a list of lists of 2D incorporation values.  
     '''
-
     peptide = system.Peptide(seq, start_res, start_res+len(seq))
 
     # Add data to the fragment
@@ -396,7 +408,6 @@ def simulate_peptide_data(seq, start_res, exch_rates, timepoints, replicates=3, 
         tp.add_replicate(deut)
 
     return peptide
-
 
 def simulate_state_data(state, rates, replicates, timepoints, pH=7, temp=283):
     return 0
@@ -414,3 +425,45 @@ def subsequence_consistency(sequence, subsequence, start_residue):
     #print(sequence, sequence[start_residue-1:start_residue-1+len(subsequence)])
     #print("DHSIUO", subsequence, start_residue, sequence)
     return sequence[start_residue-1:start_residue-1+len(subsequence)]==subsequence
+
+def get_max_overlap(peptides, n_residues):
+    # get maximum overlap to set the size of the figure
+    overlap = numpy.zeros(n_residues)
+    for resnum in range(n_residues):
+        for pep in peptides:
+            if resnum+1 in pep.get_observable_residue_numbers():
+                overlap[resnum]+=1
+    max_overlap = int(max(overlap))
+    return max_overlap
+
+def open_md_prior_file(file, sequence, sigma=None):
+    # Lines in the file must be of format:
+    # Res#, Res, Pf, Sigma
+    f = open(file, "r")
+    f.readline()
+    pf_list = []
+
+    nres = len(sequence)
+    pf_list.append((99,99))
+    for i in range(1,nres):
+        if sequence[i] == "P":
+            pf_list.append((99,99))
+        else:
+            pf_list.append((100,100))
+
+    for l in f.readlines():
+        if l[-1]=="\n":
+            l = l[0:-1]
+        #print(l, l.split(" "))
+        if len(l.split()) <3:
+            return pf_list
+        resn = int(l.split()[0].split("_")[1])
+        res = l.split()[1]
+        pf = float(l.split()[2])
+        if sigma is not None:
+            sig = sigma
+        else:
+            sig = float(l.split()[3])
+        pf_list[resn-1] = (pf, sig)
+
+    return pf_list

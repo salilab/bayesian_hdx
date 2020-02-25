@@ -4,6 +4,14 @@
 import tools
 import hxio
 import numpy
+import numpy.random
+
+
+def set_default(obj):
+    if isinstance(obj, set):
+        return list(obj)
+    #print(obj)
+    raise TypeError
 
 def calculate_percent_d(dataset):
     # Calculates the averaged %D over all timepoints in a peptide.
@@ -15,8 +23,6 @@ def calculate_percent_d(dataset):
             print(">", pep.start_residue, pep.sequence, avg_deut)
         else:
             print("Peptide" + pep.sequence + "has no data")
-
-
 
 def calculate_delta_percent_d(dataset1, dataset2):
     # Simple function takes two datasets and calculates the
@@ -37,42 +43,64 @@ class Dataset(object):
     Requires a Macromolecule object and can create a state object
     Consists of a list of Peptides with associated timepoints, along with experimental parameters
     Intrinsic rates are calculated and stored here
-    """
 
-    def __init__(self, name, conditions, sequence, input_file=None, error_estimate=5.0,
+    Rates are calculated with respect to a maximum theoretical rate (self.max_rate)
+    observable at these conditions.  These "protection_factors" 
+    """   
+
+    def __init__(self, name, conditions, sequence, input_file=None, error_estimate=1.0, 
                     offset=1, number_fast_exchanging_amides=2, percent_deuterium=False):
-        self.raw_data_file = input_file
+        self.raw_data_file = str(input_file)
         self.conditions = conditions
         self.sequence = sequence
         self.peptides = []
         self.nfastamides = number_fast_exchanging_amides # use this to utilize NMR data (set to zero)
         if sequence is not None:
             self.intrinsic = self.calculate_intrinsic_rates()
+            # The maximum theoretically observable rate at these conditions is from
+            # the third residue in "XCCX". NOT 100% SURE ABOUT THIS!
+            self.max_rate = self.get_max_rate()
         self.offset = offset # offset between MS file and FASTAFILE residue numbers
         self.sigma_estimate = error_estimate
         self.name = name
         self.sigma0 = error_estimate
+        self.sigma = error_estimate
         self.peptide_dict = {}
         self.percent_deuterium = percent_deuterium
         self.times = set([tp.time for tp in self.get_all_timepoints()])
+
+    def get_max_rate(self):
+        # Returns the theoretical maximum rate for these dataset conditions
+        try:
+            max_rate = self.max_rate
+        except:
+            max_rate = tools.get_sequence_intrinsic_rates("ACCA", self.conditions.pH, self.conditions.temperature, log=True)[-1]            
+            self.max_rate = max_rate
+        return max_rate
 
     def collect_times(self):
         self.times = set([tp.time for tp in self.get_all_timepoints()])
 
     def get_peptides_with_residue(self, resnum):
+        # returns a list of peptide objects that overlap the given residue
+        # number
         peptides = []
         for pep in self.get_peptides():
-            if resnum in pep.get_observable_residue_numbers():
-                peptides.append(pep)
+            if resnum > pep.start_residue and resnum < pep.start_residue + len(pep.sequence):
+                if resnum in pep.get_observable_residue_numbers():
+                    peptides.append(pep)
         return peptides
 
     def get_all_tp_avg_sigmas(self):
+        # Returns a list of the average and sds from each timepoint.
         sigmas = []
         for tp in self.get_all_timepoints():
             sigmas.append(tp.get_avg_sd())
         return sigmas
 
     def set_tp_sigmas_by_replicate(self, replicate_number, sigma):
+        # This function will set a sigma value by the replicate_id attribute 
+        # of each replicate object
         pass
 
     def is_this_peptide_in_dataset(self, sequence, start_residue, charge_state):
@@ -86,16 +114,8 @@ class Dataset(object):
             return True
         return tools.subsequence_consistency(self.sequence, peptide.get_sequence(), peptide.start_residue)
 
-    def get_score(self):
-        for pep in self.peptides():
-            score += pep.get_score()
-        return score
-
-    def get_set_of_timepoints(self):
-        return set(self.get_all_timepoints())
-
     def calculate_pooled_sd(self):
-        # Calculate the standard deviation over all timepoints
+        # Calculate the average standard deviation over all timepoints
         total_tps = 0
         sd = 0
         for p in self.peptides:
@@ -105,10 +125,23 @@ class Dataset(object):
                     total_tps += 1
         return sd / float(total_tps)
 
+    def get_dataset_as_dictionary(self, log_time=False):
+        # returns all data as a dictionary
+        data_dict = {}
+        for p in self.get_peptides():
+            data_dict[p.sequence+"_"+str(p.start_residue)]={}
+            for tp in p.get_timepoints():
+                if log_time:
+                    time = numpy.log(tp.time)
+                else:
+                    time = tp.time
+                data_dict[p.sequence+"_"+str(p.start_residue)][time] = [rep.deut for rep in tp.get_replicates()]
+        return data_dict
+
     def calculate_observable_rate_bounds(self, threshold = 0.01):
-        # The first and last timepoints define a range of
+        # The first and last timepoints define a range of 
         # observable exchange rates.
-        # These are calculated as those that are only contribute 1% at
+        # These are calculated as those that are only contribute 1% at 
         # each extreme. (or to a user defined threshold)
         if threshold >= 0.5:
             raise Exception("Dataset.get_observable_rate_bounds: Threshold must be < 0.5 and ideally < 0.1")
@@ -124,7 +157,7 @@ class Dataset(object):
         fastest_logk = numpy.log10(-numpy.log(threshold)/first_time_point)
         slowest_logk = numpy.log10(-numpy.log(1-threshold)/last_time_point)
 
-        self.observable_bounds = (slowest_logk-0.5, fastest_logk+0.5)
+        self.observable_bounds = (slowest_logk, fastest_logk)
 
         return self.observable_bounds
 
@@ -140,7 +173,6 @@ class Dataset(object):
             else:
                 observable_pfs.append((i-fast, i-slow))
 
-                #print(i, (i-slow, i-fast))
         self.observable_protection_factors = observable_pfs
 
         return self.observable_protection_factors
@@ -156,7 +188,6 @@ class Dataset(object):
         for i in ids:
             peptides.append(peptide_dict[i])
         return peptides
-
 
     def ensure_unique_peptide_id(self, peptide, modify_if_not_unique=True):
         '''
@@ -176,15 +207,15 @@ class Dataset(object):
         Takes a peptide object and adds it to the State peptide list
         Returns peptide object
         '''
+        
         if self.sequence is not None:
             if not self.peptide_sequence_consistency(new_peptide):
-                target_pep = self.sequence[peptide.start_residue-1, peptide.start_residue+len(peptide.sequence)-1]
-                print("Peptide ", new_peptide.sequence, peptide.start_residue, " does not fit in ", target_pep )
+                target_pep = self.sequence[new_peptide.start_residue-1:new_peptide.start_residue+len(new_peptide.sequence)-1]
+                print("Peptide ", new_peptide.sequence, new_peptide.start_residue, " does not fit in ", target_pep )
                 raise Exception("Exiting at Dataset.add_peptide")
             # If the peptide is already in the dataset, return that peptide
             isin, pep = self.is_this_peptide_in_dataset(new_peptide.sequence, new_peptide.start_residue, new_peptide.charge_state)
             if isin:
-                #print("Peptide " + new_peptide.sequence + str(new_peptide.start_residue) + " already created.")
                 return pep
             else:
                 self.peptides.append(new_peptide)
@@ -198,6 +229,7 @@ class Dataset(object):
             return self.peptides[-1]
 
     def get_all_timepoints(self):
+        # Returns all timepoint objects contained in the dataset
         tps = []
         for p in self.peptides:
             for tp in p.get_timepoints():
@@ -205,20 +237,24 @@ class Dataset(object):
         return tps
 
     def get_all_times(self):
-        return self.times
+        # Returns the set of times (in seconds) contained in this dataset
+        return set([tp.time for tp in self.get_all_timepoints()])
 
-    def create_peptide(self, sequence, start_residue, peptide_id=None, sigma=5.0, charge_state=None, retention_time=None):
+    def create_peptide(self, sequence, start_residue, peptide_id=None, sigma=None, charge_state=None, retention_time=None):
         '''
         Manually creates a peptide object
         adds it to the end of Dataset peptide list
 
         Returns the peptide object
         '''
+        if sigma is None:
+            sigma = self.sigma
+
         if peptide_id is None:
             peptide_id = str(len(self.peptides))
-        new_peptide = Peptide(self, sequence, start_residue, peptide_id,
-                        sigma=sigma,
-                        charge_state=charge_state,
+        new_peptide = Peptide(self, sequence, start_residue, peptide_id, 
+                        sigma=sigma, 
+                        charge_state=charge_state, 
                         retention_time=retention_time)
         return self.add_peptide(new_peptide)
 
@@ -229,13 +265,18 @@ class Dataset(object):
         self.state = state
 
     def calculate_intrinsic_rates(self):
-        return tools.get_sequence_intrinsic_rates(self.get_sequence(), self.conditions.pH, self.conditions.temperature, log=True)
+        self.intrinsic = tools.get_sequence_intrinsic_rates(self.get_sequence(), self.conditions.pH, self.conditions.temperature, log=True)
+        return self.intrinsic
+
+    def get_intrinsic_rates(self):
+        return self.intrinsic
 
     def get_state(self):
         return self.state
 
     def write_to_file(self, outfile):
-        # Converts the dataset into nested dictionaries:
+        # Converts the dataset into nested dictionaries and dumps them to 
+        # a standard json output.
         import json
         dataset = {}
 
@@ -247,11 +288,11 @@ class Dataset(object):
         dataset["offset"] = self.offset
         dataset["num_fast_exchanging_amides"] = self.nfastamides
         dataset["percent_deuterium"] = self.percent_deuterium
+        dataset["max_rate"] = self.max_rate
 
         peptides = {}
         for pep in self.get_peptides():
             pep_dict = {}
-            print(pep.sequence)
             pep_dict["sequence"] = pep.sequence
             pep_dict["start_residue"] = pep.start_residue
             pep_dict["charge_state"] = pep.charge_state
@@ -261,12 +302,12 @@ class Dataset(object):
             for tp in pep.get_timepoints():
                 replicates = {}
                 tp_dict = {}
-                for rep in tp.get_replicates():
-                    rep_dict = rep.__dict__
-                    #rep_dict["deuteration"] = rep.deut
-                    #rep_dict["reliability"] = rep.reliability
-                    #rep_dict["retention_time"] = rep.rt
-                    replicates[rep.experiment_id] = rep_dict
+                for rep in range(len(tp.get_replicates())):
+                    rep_dict = tp.get_replicates()[rep].__dict__
+                    #rep_dict["deuteration"] = tp.get_replicates()[rep].deut
+                    #rep_dict["reliability"] = tp.get_replicates()[rep].reliability
+                    #rep_dict["retention_time"] = tp.get_replicates()[rep].rt
+                    replicates[rep] = rep_dict
                 tp_dict["time"] = tp.time
                 tp_dict["sigma"] = tp.sigma
                 tp_dict["replicates"] = replicates
@@ -276,9 +317,13 @@ class Dataset(object):
             peptides[pep.get_id()] = pep_dict
 
         dataset["peptides"] = peptides
+        #dataset = {'dataset' : dataset}
+        #json_string = json.dumps(dataset)
 
-        with open(outfile,"w") as f:
-            json.dump(dataset,f)
+        with open(outfile,"w") as fp:
+            json.dump(dataset, fp)
+            
+        self.raw_data_file=outfile
 
         return dataset
 
@@ -287,9 +332,11 @@ class Dataset(object):
         score = 0
         for pep in self.get_peptides():
             score += pep.get_score()
+        self.score = score
         return score
 
     def set_sigma(self, sigma):
+        self.sigma = sigma
         for pep in self.get_peptides():
             pep.set_sigma(sigma)
 
@@ -299,12 +346,77 @@ class Dataset(object):
             for tp in pep.get_timepoints():
                 deut = 0
                 for r in residues:
-                    #print(pep.sequence, tp.time, deut, deut_by_residue[tp.time])
-                    deut += deut_by_residue[r-1][tp.time]
-                #print(pep.sequence, tp.time, deut)
+                    deut += deut_by_residue[r][tp.time]
                 tp.set_deuteration(deut * self.conditions.saturation)
 
+    def delete_peptide(self, sequence, start_res, charge_state):
+        # Remove a given peptide from this dataset
+        for p in range(len(self.get_peptides())):
+            if self.peptides[p].sequence == sequence and self.peptides[p].start_residue == start_res and self.peptides[p].charge_state==charge_state:
+                self.peptides.remove(self.peptides[p])
+                break
+            if p == len(self.get_peptides())-1:
+                raise Warning("Peptide", sequence, start_res, charge_state, "does not exist in this dataset")
 
+
+    def simulate_all_data(self, protection_factors, timepoints, replicates, error):
+        # Remove all timepoints from each peptide and replace with new simulated data
+        # based on the given protection factors
+
+        self.get_intrinsic_rates()
+
+        # clear all peptides
+        for p in self.peptides:
+            p.timepoints = []
+
+        for p in self.peptides:
+            # First, get the rate for each residue in the peptide:
+            rates = []
+            for i in range(p.start_residue+2,p.start_residue+len(p.sequence)):
+                rates.append(self.intrinsic[i-1]-protection_factors[i-1])
+
+            for tp in timepoints:
+                timepoint = p.add_timepoint(tp)
+                for i in range(replicates):
+                    # Calculate deuteration
+                    deut=0
+                    for r in rates:
+                        deut += tools.calculate_deut(r, tp)
+
+                    pdeut = deut / float(p.get_number_of_observable_amides()) * 100
+                    pdeut += numpy.random.normal(0, pdeut*error/100)
+
+                    timepoint.add_replicate(pdeut)
+
+    def get_residue_information_content(self, protection_factors):
+        '''
+        Calculate for all residues, the amount of information at each residue, for each timepoiint and peptide
+
+        For each peptide, the information at Pf = P for a residue is defined as
+        1/(number of observable amides) * Resolving_power(P)
+
+        Where resolving power is the sum over all timepoints, tp, of: 
+            10^[(k_ex/P)]*exp(-10^(k_ex/P)*tp)
+        where k_ex is the intrinsic rate of the amide at the dataset conditions (T, pH)
+
+        Output is a 2D numpy array with dimensions of n_residues and n_protection_factors
+        '''
+        residue_information = numpy.zeros((len(self.sequence), len(protection_factors)))
+        for r in range(1,len(self.sequence)+1):
+            peptides = self.get_peptides_with_residue(r)
+            for p in peptides:
+                factor = 1.0/p.get_number_of_observable_amides()
+                for tp in p.get_timepoints():
+                    t = tp.time
+                    rps = numpy.zeros(len(protection_factors))
+                    for i in range(len(protection_factors)):
+                        pf = protection_factors[i]
+                        logk = self.intrinsic[r-1] - pf
+                        rate = -1*(10**logk)*t
+                        rps[i] = 10**logk*numpy.exp(rate)
+                    residue_information[r-1][:]+=rps/numpy.linalg.norm(rps)*factor
+
+        return residue_information
 
 
 class Peptide(object):
@@ -314,7 +426,7 @@ class Peptide(object):
         @param sequence - sequence of the peptide
         @param start_residue - starting residue of the peptide
         @param peptide_id - a unique peptide ID
-        @param sigma - an error
+        @param sigma - an error 
 
     """
     def __init__(self, dataset, sequence, start_residue, peptide_id, charge_state=None, sigma=5.0, retention_time=None):
@@ -361,7 +473,7 @@ class Peptide(object):
 
     def get_residue_numbers(self):
         #return a list of the residue numbers in the peptide
-        return range(self.start_residue, self.start_residue + len(self.sequence))
+        return range(self.start_residue-1, self.start_residue + len(self.sequence))
 
     def get_observable_residue_numbers(self):
         return self.observable_residue_numbers
@@ -370,6 +482,7 @@ class Peptide(object):
         # Only returns those residue numbers that are observable
         # (no N-terminal and no prolines)
         orns = self.get_residue_numbers()
+        
         #remove N-terminal amides
         orns = orns[self.dataset.nfastamides:]
 
@@ -379,8 +492,9 @@ class Peptide(object):
             if self.sequence[prn] != 'P':
                 orns2.append(prn+self.start_residue)
 
+
         if len(orns2) != self.num_observable_amides:
-            raise Exception("Peptide.get_observable_residue_numbers: Something is wrong with this calculation")
+            raise Exception("Peptide.get_observable_residue_numbers: Something is wrong with this calculation") 
         return orns2
 
     def get_id(self):
@@ -389,12 +503,15 @@ class Peptide(object):
     def calculate_number_of_observable_amides(self):
         #number of observable amides is equal to peptide length - 2, minus remaining prolines
         num_prolines = self.sequence.count('P', self.dataset.nfastamides) + self.sequence.count('p', self.dataset.nfastamides)
+        #print(self.sequence, len(self.sequence), num_prolines, self.dataset.nfastamides)
         return len(self.sequence) - num_prolines - self.dataset.nfastamides
 
     def get_number_of_observable_amides(self):
         return self.num_observable_amides
 
-    def add_timepoint(self, time, sigma=5.0):
+    def add_timepoint(self, time, sigma=None):
+        if sigma is None:
+            sigma = self.sigma
         if time not in [tp.time for tp in self.timepoints]:
             tp = Timepoint(time, sigma)
             self.timepoints.append(tp)
@@ -432,7 +549,6 @@ class Peptide(object):
                         sig=t.sigma
                     chi+=(r.deut-t.model_avg)**2/sig
                     nrep+=1
-                #print f.seq, chi, t.time, t.model_avg, t.deut
         if len(self.timepoints) > 0:
             self.chi = chi/nrep
         else:
@@ -444,10 +560,10 @@ class Peptide(object):
         for tp in self.timepoints:
             tp.calc_model_deut(freq_grid, exp_grid, self.num_observable_amides)
             score += tp.calculate_tp_score(grid, exp_grid, sig, self.num_observable_amides, force_calc=True)
-        return score
+        return score        
 
     def calculate_score(self, grid, exp_grid, sig, save=False, force=False):
-        score = 0
+        score = 0     
         for tp in self.timepoints:
             tp.calc_model_deut(grid, exp_grid, self.num_observable_amides)
             score += tp.calculate_tp_score(grid, exp_grid, sig, self.num_observable_amides, force_calc=True)
@@ -457,7 +573,7 @@ class Peptide(object):
         if sigma == None:
             sigma = self.sigma
         for tp in self.timepoints:
-            tp.sigma = sigma
+            tp.sigma = sigma 
 
     def calculate_average_deuteration(self):
         # Calculates the average deuteration of the peptide over all timepoints
@@ -483,7 +599,7 @@ class Timepoint(object):
     def __init__(self, time, sigma0):
         '''
         @param time - Time in seconds
-        @param sigma0 - Initial estimate of timepoint error sigma in pctD units.
+        @param sigma0 - Initial estimate of timepoint error sigma in pctD units. 
         '''
         self.time = time
         self.models = []
@@ -577,6 +693,19 @@ class Timepoint(object):
 
     def get_score(self):
         return self.score
+
+
+class SimulatedData(object):
+    # Object that defines a simulated system and creates a simulated dataset from that system
+    def __init__(self, sequence, peptides=None, truth=None, error=None):
+        self.peptides = peptides # list of tuples,
+        self.sequence = sequence 
+        self.truth = truth
+
+    def create_dataset(self):
+        data = Dataset(sequence=self.sequence)
+        #for p in self.peptides:
+        #    print(p)
 
 
 class Replicate(object):

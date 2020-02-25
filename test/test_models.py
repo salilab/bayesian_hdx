@@ -2,24 +2,18 @@
 Test the input of various file types
 '''
 from __future__ import print_function
-import utils
-import unittest
-import numpy
-import os
-from copy import deepcopy
-
-TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-utils.set_search_paths(TOPDIR)
-
 import model
 import system
+import unittest
 import data
+import numpy
+from copy import deepcopy
 #import tools
 
 
 def initialize_system_and_dataset():
     sequence = "MEGAMAN"
-    sys = system.System()       
+    sys = system.System()
     mol = sys.add_macromolecule(sequence, "test_molecule")
     d = data.Dataset("Test", data.Conditions(), sequence=sequence)
     d.create_peptide("MEGA", start_residue=1)
@@ -66,7 +60,8 @@ class TestResidueGridModel(unittest.TestCase):
 
         mod = rgm.generate_model(random=False, value=2, initialize=True)
         self.assertEqual(len(state.get_sequence()), len(mod))
-        for i in mod:
+
+        for i in mod[2:]:
             self.assertEqual(i, 2)
 
         mod2 = rgm.generate_model(random=True, initialize=True)

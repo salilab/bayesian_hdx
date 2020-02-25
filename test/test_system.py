@@ -2,42 +2,57 @@
 Test features of the HDX system representation
 '''
 from __future__ import print_function
-import utils
-import os
-import unittest
-import numpy
-
-TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-utils.set_search_paths(TOPDIR)
-
 import system
 import data
 import tools
 import hxio
 import model
+import unittest
+import os
+import numpy
 
 
 def initialize_system():
-    sys = system.System()       
+    sys = system.System()
     return sys.add_macromolecule("MEGAMAN", "test_molecule")
 
 def initialize_dataset():
+    times=[10,30,90,900,3600]
     d = data.Dataset("Test", data.Conditions(), sequence="MEGAMAN")
     d.create_peptide("MEGA", start_residue=1)
     d.create_peptide("MEGAMA", start_residue=1)
     d.create_peptide("GAMAN", start_residue=3)
     d.create_peptide("AMAN", start_residue=4)
+    for p in d.get_peptides():
+        for t in times:
+            p.add_timepoint(t)
     return d
 
 class TestSystem(unittest.TestCase):
 
+    def setup_system_with_data(self):
+        mol = initialize_system()
+        state = mol.get_apo_state()
+        d = initialize_dataset()
+        state.add_dataset(d)
+        state.set_output_model(model.ResidueGridModel(state, 50, protection_factors=True))
+
+        return mol, state
+
     def test_initialize(self):
         sys = system.System()
-        
+
         self.assertEqual(len(sys.get_macromolecules()), 0)
 
         sys.add_macromolecule("MEGAMAN", "test_molecule")
         self.assertEqual(len(sys.get_macromolecules()), 1)
+
+    def test_residue_information_content(self):
+        mol, state = self.setup_system_with_data()
+        ri = state.calculate_residue_information_content()
+        self.assertEqual(len(state.sequence), len(ri))
+        #print("RI:", ri)
+
 
 
 class TestMacromolecule(unittest.TestCase):
@@ -75,7 +90,7 @@ class TestState(unittest.TestCase):
 
         pep = d.create_peptide("EGAM", start_residue=2)
         sectors = state.calculate_sectors()
-        self.assertEqual(len(sectors), 5)       
+        self.assertEqual(len(sectors), 5)
         self.assertEqual(state.sector_dictionary[0], set([3]))
 
         pep.add_timepoints([10,100])

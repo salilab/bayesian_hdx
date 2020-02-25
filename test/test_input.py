@@ -2,34 +2,29 @@
 Test the input of various file types
 '''
 from __future__ import print_function
-import utils
+import hxio
+import data
 import unittest
 import os
 
-TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-utils.set_search_paths(TOPDIR)
-
-import hxio
-import data
-
-input_path = os.path.join(TOPDIR, "test", "input")
+input_path = os.path.dirname(os.path.realpath(__file__))+"/input/"
 
 class TestHelperFunctions(unittest.TestCase):
 
     def test_read_fasta(self):
-        infile = os.path.join(input_path, "test.fasta")
+        infile = input_path + "test.fasta"
         seq = ("TEST_PROTEIN1", "ANIMAGINARYPEPTIDE")
 
 
         i = hxio.read_fasta(infile)
 
-        (h, s) = next(i)
+        (h, s) = i.next()
 
         self.assertEqual(h, seq[0])
         self.assertEqual(s, seq[1])
 
 
-        in2file = os.path.join(input_path, "test4.fasta")
+        in2file = input_path + "test4.fasta"
 
         i = hxio.read_fasta(in2file)
 
@@ -40,7 +35,7 @@ class TestHelperFunctions(unittest.TestCase):
 
 
         for s in range(len(seqs)):
-            tup = next(i)
+            tup = i.next()
             self.assertEqual(tup, seqs[s])
 
 
@@ -48,16 +43,16 @@ class TestHelperFunctions(unittest.TestCase):
 class TestImportFiles(unittest.TestCase):
 
     def test_import_workbench(self):
-        infile = os.path.join(input_path, "Workbench_VDR_VD3_01.csv")
+        infile = input_path + "Workbench_VDR_VD3_01.csv"
         datasets = hxio.import_HDXWorkbench(infile)
         self.assertEqual(len(datasets), 2)
 
     def test_import_columns(self):
 
-        infile = os.path.join(input_path, "HXColumns_test_small.csv")
-        fastafile = os.path.join(input_path, "test.fasta")
+        infile = input_path + "HXColumns_test_small.csv"
+        fastafile = input_path + "test.fasta"
 
-        sequence = next(hxio.read_fasta(fastafile))[1]
+        sequence = hxio.read_fasta(fastafile).next()[1]
         #print("JDHS", sequence.next())
         dataset = hxio.import_HXcolumns(infile, sequence)
 
