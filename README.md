@@ -34,15 +34,15 @@ Other analyses
 ## tl/dr Usage
 
 ### As python script
-The method runs as a python scripts that can be modified by the user.  To start immediately, go to `examples/cytochrome_c` and run:
+The method runs as a python scripts that can be modified by the user.  To start immediately, go to `examples/CytC` and run:
 ```
-python run_lots_of_cytc.py
+python run_lots_of_cytc.py 1 test
 ```
-Read through the `cytc_modeling.py` script and [below] to see how to incorporate your data and information into the modeling.
+Read through ![cytc_multi.py](https://github.com/salilab/bayesian_hdx/tree/v2.1/examples/CytC/modeling/cytc_multi.py) and below to see how to incorporate your data and information into the modeling.
 
 
 
-### From the command line with a workbech file
+### From the command line with a HDXWorkbench file
 Alternatively, if you have an HDX Workbench file, you can input it directly to the `workbench_executable.py` script with the following format:
 ```
 python workbench_executable.py "path/to/workbench/file.csv" "output_directory"
@@ -50,14 +50,12 @@ python workbench_executable.py "path/to/workbench/file.csv" "output_directory"
 Additional command line arguments can be added. Run `python workbench_executable.py -h` to see all options.  Ensure that the ./pyext/src/ folder is in your PYTHONPATH or add it at invocation with the flag `--path "path/to/code/pyext/src"`.
 
 
-#-------#
-
-## Methodology
+## Methodology and more complete instructions
 
 ### Overview
 Protection factor modeling is performed by convering [HDX-MS timepoint data] into a scoring function that can be evaluated against a proposed set of protection factors for each residue. Thousands to millions of protection factor combinations are evaluated using Markov chain Monte-Carlo. The best fitting sets of protection factor values are reported as an ensemble, allowing interpretation of not only the magnitude of the protection factor, but the precision of it as well. 
 
-The method proceeds in four steps:
+The method proceeds in five steps:
 
 1) Gather Input Data and Information
 2) Define Scoring Function and Representation
@@ -102,7 +100,7 @@ mol = sys.add_macromolecule("MYFAVRITEPEPTIDE", name="Molecule", initialize_apo=
 ```
 Individual states can be added to the system. These might represent different liganded states, different buffer conditions or point mutations.
 
-States can be added to each molecule. Each state may have multiple data.Datasets objects associated with it.
+States can be added to each molecule. Each state may have multiple `data.Datasets` objects associated with it.
 ```
 apo_state = mol.add_state(name="Apo")
 apo_state.add_dataset(apo_data_pH7.5)
@@ -118,7 +116,7 @@ E11A_state = mol.add_state(name="E11A", perturbations=[("mutation", "E11A")])
 E11A_state.add_dataset(E11A_data)
 ```
 
-There is a single choice for representing protein protection factors: model.ResidueGridModel. This representation creates a single parameter for each residue, the log(protection factor), and allows it to sample discrete values along a grid. The value of log(protection factor) is bounded by -2 and 14, with the grid_size defined by the user. A value of 50-100 has been found to be sufficient in most cases. The model can be defined to sample only residues observed in the datasets. 
+There is a single choice for representing protein protection factors: `model.ResidueGridModel`. This representation creates a single parameter for each residue, the log(protection factor), and allows it to sample discrete values along a grid. The value of log(protection factor) is bounded by -2 and 14, with the grid_size defined by the user. A value of 50-100 has been found to be sufficient in most cases. The model can be defined to sample only residues observed in the datasets. 
 ```
 model_representation = model.ResidueGridModel(state, grid_size=100, sample_only_observed_residues=False)
 
@@ -140,7 +138,7 @@ for s in mol.get_states():
 
 #### Set the Scoring Function
 
-The Forward Model combined with a Noise Model defines how a proposed set of protection factors will be evaluated against the data. Currently, there is only choice, scoring.GaussianNoiseModel. Given a set of protection factors for all residues, the point estimate for the deuterium incorporation for each peptide and timepoint is calculated (Eqn. 1, the forward model). It is scored against each observed deuterium incorporation via a Gaussian function [Eqn. 2, the noise model], where sigma is the estimated error in the experimental value; this quantity can be sampled.
+The Forward Model combined with a Noise Model defines how a proposed set of protection factors will be evaluated against the data. Currently, there is only choice, scoring.GaussianNoiseModel. Given a set of protection factors for all residues, the point estimate for the deuterium incorporation for each peptide and timepoint is calculated [Eqn. 1, the forward model]. It is scored against each observed deuterium incorporation via a Gaussian function [Eqn. 2, the noise model], where sigma is the estimated error in the experimental value; this quantity can be sampled.
 
 [Pictures with math]
 
@@ -152,16 +150,16 @@ Prior probability distributions are valuable for explicitly incorporating other 
 Used to restrain the value of the protection factor, useful for incorporating estimates from MD simulation or NMR data. Can be formulated as a Gaussian or empirical prior. Default = None. 
 
 #### NaturalAbundancePrior
-A prior to represent the distribution of expected protection factors found in globular proteins. The default prior is an empirical function based on a survey of HDX experts (read, we made up a curve that looks reasonable). 
+A prior to represent the distribution of expected protection factors found in globular proteins. The default prior is an empirical function based on a survey of HDX experts (read: we made up a curve that looks reasonable). 
 
 
 ## 3) Sampling
 
 A single Markov chain can be initiated. Several sampling parameters can be adjusted for the expert user to optimize mixing and obtain the desired acceptance ratios:
 
-* pct_moves - The percentage of residue protection factors that are moved each MC step (default=50.
-* adjacency - The maximum step size (in grid points) for a single MC move (default = 0.2 * grid_size for annealing, 0.1*grid_size for production)
-* steps - Number of MC steps
+* `pct_moves` - The percentage of residue protection factors that are moved each MC step (default=50.
+* `adjacency` - The maximum step size (in grid points) for a single MC move (default = 0.2 * grid_size for annealing, 0.1*grid_size for production)
+* `steps` - Number of MC steps
 
 Percent_moves defines the number of residues that are perturbed for each MC step (0-100) during production runs.
 
