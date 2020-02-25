@@ -8,8 +8,8 @@ import numpy
 
 
 running_script = "./cytc_multi.py"
-excalibur_path = "/Users/saltzberg/salilab/repositories/bayesian_hdx/setup.sh"
-output_prefix = "cytc_multi_500"
+excalibur_path = "/../../setup.sh"
+output_prefix = "cytc_multi_test"
 
 def run_one_simulation(i, output_prefix):
     Popen([excalibur_path, "python", running_script, str(i), output_prefix])
