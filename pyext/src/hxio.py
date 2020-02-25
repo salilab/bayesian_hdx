@@ -668,7 +668,7 @@ class Output(object):
         f.write("### Datasets used | error_estimate\n")
         for d in state.data:
             if d.raw_data_file is not None:
-                print(state.macromolecule.name, state.name, d.name, d.raw_data_file, d.sigma0)
+                #print(state.macromolecule.name, state.name, d.name, d.raw_data_file, d.sigma0)
                 f.write("# " +"/datasets/"+ state.macromolecule.name +"_" + state.name + "_" + d.name + ".hxd" + " | "+ str(d.raw_data_file) + " | " + str(d.sigma0) + "\n")
         f.write("\n")
         # Sectors
