@@ -62,9 +62,10 @@ The method proceeds in four steps:
 1) Gather Input Data and Information
 2) Define Scoring Function and Representation
 3) Sample Alternative Configurations
-4) Analyze Resulting Ensembles
+4) Ensure Sampling Exhaustiveness
+5) Analyze Results
 
-## Gathering Input Data
+## 1) Gathering Input Data
 
 HDX-MS data can read from a number of HDX file formats including HDXWorkbench, MSStudio and Waters using macros found in pyext/src/hxio.py.
 
@@ -88,7 +89,9 @@ Data must also include a set of Conditions, which defines the pH, temperature an
 
 Currently, the "Score" column is not used, but will be in upcoming versions
 
-## Define Scoring Function and Representation
+## 2) Define Scoring Function and Representation
+
+#### Defining the system representation
 
 The system is defined as a single macromolecule via its FASTA sequence. 
 
@@ -115,17 +118,27 @@ E11A_state = mol.add_state(name="E11A", perturbations=[("mutation", "E11A")])
 E11A_state.add_dataset(E11A_data)
 ```
 
-### Check information content of your data
-
-Before running a simulation, you can check the relative information content of your data
-
 There is a single choice for representing protein protection factors: model.ResidueGridModel. This representation creates a single parameter for each residue, the log(protection factor), and allows it to sample discrete values along a grid. The value of log(protection factor) is bounded by -2 and 14, with the grid_size defined by the user. A value of 50-100 has been found to be sufficient in most cases. The model can be defined to sample only residues observed in the datasets. 
-
 ```
 model_representation = model.ResidueGridModel(state, grid_size=100, sample_only_observed_residues=False)
 
 apo_state.set_output_model(model_representation)
 ```
+
+### Check the data information content of your system
+
+Before running a simulation, you can check the relative information content of your data at each protection factor. Dark values indicate protection factor ranges that are well sampled by the set of peptide timepoints. 
+
+```
+protection_factors = numpy.arange(-2,14,0.1)
+for s in mol.get_states():
+    plots.plot_overlap_and_information(s, protection_factors, outfile="./"+s.get_name()+"_data-info.png", figwidth_scale=2.0)
+```
+![Peptide map and info content plot](img/info_content.png)
+
+
+
+#### Set the Scoring Function
 
 The Forward Model combined with a Noise Model defines how a proposed set of protection factors will be evaluated against the data. Currently, there is only choice, scoring.GaussianNoiseModel. Given a set of protection factors for all residues, the point estimate for the deuterium incorporation for each peptide and timepoint is calculated (Eqn. 1, the forward model). It is scored against each observed deuterium incorporation via a Gaussian function [Eqn. 2, the noise model], where sigma is the estimated error in the experimental value; this quantity can be sampled.
 
@@ -142,7 +155,7 @@ Used to restrain the value of the protection factor, useful for incorporating es
 A prior to represent the distribution of expected protection factors found in globular proteins. The default prior is an empirical function based on a survey of HDX experts (read, we made up a curve that looks reasonable). 
 
 
-## Sampling
+## 3) Sampling
 
 A single Markov chain can be initiated. Several sampling parameters can be adjusted for the expert user to optimize mixing and obtain the desired acceptance ratios:
 
@@ -188,7 +201,7 @@ for i in range(Ns):
 
 It is recommended to run at least four individual Markov chains.
 
-### Samping Evaluation
+### 4) Samping Evaluation
 
 Sampling convergence is estimated by comparing the variation of a parameter (residue Pf value) within a single chain, to the variation over all chains (Rhat). This value is recorded for each residue:
 
@@ -199,7 +212,7 @@ Values < 1.05 suggest convergence. Values greater than 1.1 are indicative of inc
 Sampling precision refers to the resolution at which independent samples are equal. This is measured in log(protection factor) units using procedures developed in [Viswanath et. al.].
 
 
-## Post-sampling analysis
+## 5) Analyze Results
 Data output is delivered in into the `output` (or user-defined) directory. 
 
 A number of plots are produced to show the results of simulation:
@@ -212,8 +225,15 @@ A number of plots are produced to show the results of simulation:
 
 ![Peptide Fit Plot](img/XXX.png)
 
-Poor-fitting peptides may be a result of insufficient sampling, incoherent data and/or peptide misassignments.
+Poor-fitting peptides may be a result of insufficient sampling, incoherent data and/or peptide misassignments. 
 
+### dHDX difference between states
+The ensembles produced by the Bayesian HDX method are particularly useful for identifying differences in HDX between two states of a macromolecule
+
+
+
+
+## Version Notes
 
 ----------------------
 ## Version 2.1 Updates
