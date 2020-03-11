@@ -14,8 +14,8 @@ LABEL tags="HDX"
 # Maintainer
 MAINTAINER Roberto Vera Alvarez <r78v10a07@gmail.com>
 
-ENV URL=https://github.com/r78v10a07/bayesian_hdx
-ENV DST=/usr/local/bayesian_hdx
+ENV URL=https://github.com/salilab/bayesian_hdx
+ENV DST=/usr/local/
 
 USER root
 
@@ -33,9 +33,8 @@ RUN apt-get clean all && \
 RUN ln -sfn /usr/bin/python3.6 /usr/bin/python
 RUN mkdir $DST
 
-RUN cd /tmp && \
+RUN cd /$DST/ && \
     git clone $URL && \
-    mv bayesian_hdx/* $DST/ && \
     chmod a+x $DST/bin/* && \
     pip3 install -r $DST/requirements.txt
 
