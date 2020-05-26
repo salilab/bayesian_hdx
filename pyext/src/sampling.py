@@ -362,7 +362,7 @@ class MCSampler(object):
                     output.write_model_to_file(output_files[s], st, model, st.score, acceptance, sigmas=True)
 
         acceptance_ratio = acceptance_total/NSTEPS
-        print("Average acceptance ratio for this run = ", acceptance_ratio, " |  Temp = ", temperature)
+        print("Average acceptance ratio for this run =", round(acceptance_ratio,3), " |  Temp = ", temperature)
 
         for of in output_files:
             of.close()  
@@ -455,7 +455,7 @@ class MCSampler(object):
         model_avg = [numpy.average(s.output_model.get_current_model()) for s in self.states]
         model_avg_str = ""
         for m in model_avg:
-            model_avg_str+=str(m)+" "
+            model_avg_str+=str(round(m,3))+" "
 
         return total_score, model_avg_str[0:-1], acceptance_ratio/len(self.states)#, m_sq_change #acceptance_ratio/len(self.states)
 
