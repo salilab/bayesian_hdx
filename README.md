@@ -153,6 +153,9 @@ Used to restrain the value of the protection factor, useful for incorporating es
 A prior to represent the distribution of expected protection factors found in globular proteins. The default prior is an empirical function based on a survey of HDX experts (read: we made up a curve that looks reasonable). 
 
 
+The plot of prior distributions can then show you how precise or imprecise the Pf estimates are from just the prior information.
+![Prior distributions](img/cytc_priors.png)
+
 ## 3) Sampling
 
 A single Markov chain can be initiated. Several sampling parameters can be adjusted for the expert user to optimize mixing and obtain the desired acceptance ratios:
@@ -215,13 +218,13 @@ Data output is delivered in into the `output` (or user-defined) directory.
 
 A number of plots are produced to show the results of simulation:
 
-* HDX Model Plots - Plots the ensemble of calculated HDX protection factors at each residue as violin plots (bottom) and color codes the peptide map on top via the chi^2 fit.
+* HDX Model Plots - Plots the ensemble of calculated HDX protection factors at each residue as violin plots (bottom) and color coded the peptide map on top via the chi^2 fit. Bright colors = large chi values. 
 
-![Violin plot](img/violins.png)
+![Model Pf distributions and peptide chi values](img/pf_dists_and_pep_chis.png)
 
-* Peptide fit-to-data - Plots of time vs. %D incorporation showing the fit of the model to the data.
+* Peptide fit-to-data - Plots of time vs. %D incorporation showing the fit of the model to the data. Experimental observations are blue dots. Model 2D incorporations are plotted with line. The 25th-75th percentiles are shaded red and max and min 2D values are dashed lines.
 
-![Peptide Fit Plot](img/XXX.png)
+![Peptide Fit Plot](img/incorporation_curve.png)
 
 Poor-fitting peptides may be a result of insufficient sampling, incoherent data and/or peptide misassignments. 
 
