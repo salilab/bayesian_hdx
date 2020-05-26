@@ -43,12 +43,13 @@ class SampledInt(object):
     def initialize():
         self.propose_move()
 
-    def set_adjacency(self, is_adjacency, adjacency):
+    def set_adjacency(self, is_adjacency, adjacency, uniform=True):
         if is_adjacency:
             self.random = False
             self.adjacency = adjacency
         else:
             self.random = True
+        self.uniform = uniform
 
     def set_range(self, allowed_range):
         self.range=allowed_range
