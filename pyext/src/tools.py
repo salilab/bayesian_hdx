@@ -198,8 +198,6 @@ def calc_intrinsic_rate(Laa, Raa, pH, T, La2="A", Ra2="A", log=False, forward=Tr
 
     krc = Fa*Dplus*ka*FTa + Fb*ODminus*kb*FTb + Fb*kw*FTw
 
-    #print(Laa, Raa, "|", krc, L_ne[1], R_ne[0], L_ne[3], R_ne[2], "||", Fa, Fb, Fa*Dplus*ka*FTa, Fb*ODminus*kb*FTb, Fb*kw*FTw)
-
     return krc
 
 def calculate_number_of_observable_amides(inseq, n_fastamides=2):
@@ -212,7 +210,6 @@ def get_sequence_intrinsic_rates(seq, pH, T, log=False, forward=True):
     i_rates[0] = calc_intrinsic_rate("NT", seq[0], pH, T, forward=forward)
     i_rates[1] = calc_intrinsic_rate(seq[0], seq[1], pH, T, La2="NT", forward=forward)
     for n in range(2, len(seq)-1):
-        #print(n, seq[n],seq[n+1])
         L = seq[n-1]
         R = seq[n]
         i_rates[n] = calc_intrinsic_rate(L, R, pH, T, forward=forward)
@@ -223,7 +220,6 @@ def get_sequence_intrinsic_rates(seq, pH, T, log=False, forward=True):
         with numpy.errstate(divide='ignore'):
             i_rates = numpy.log10(i_rates)
 
-        #print("LOG", seq, i_rates)
         return i_rates
     else:
         return i_rates
@@ -233,13 +229,11 @@ def get_pdb_sequence(pdb_file, chain=None, offset=0):
     seq = pd.Series()
     with open(pdb_file) as f:
         for l in f:
-            #print l.split()
             line=l.split()
             if len(line) < 4:
                 continue
             elif line[2]=="CA" and (chain is None or chain==line[4]):
                 resnum=int(line[5])+offset
-                #print resnum, line, len(self.get_fasta_sequence())
                 if len(seq) == 0:
                     seq = pd.Series(ThreeToOne.get(line[3],'.'), index = [resnum])
                 else:
@@ -320,7 +314,7 @@ def calculate_incorporation(intrinsic, protection_factors, timepoints, offset=0)
             else:
                 log_kex = intrinsic[n] - protection_factors[n]
                 res_incorps[tp] = calculate_simple_deuterium_incorporation(log_kex, tp)
-                #print("||||||||", intrinsic[n], protection_factors[n], log_kex, tp, res_incorps[tp])
+
         incorporations[n+1+offset] = res_incorps
 
     return incorporations
@@ -422,8 +416,7 @@ def calculate_mass(string, percent_cutoff = 100):
 def subsequence_consistency(sequence, subsequence, start_residue):
     # Simple utility that compares a subsequence to a whole sequence
     # Returns True if 100% consistent. False otherwise
-    #print(sequence, sequence[start_residue-1:start_residue-1+len(subsequence)])
-    #print("DHSIUO", subsequence, start_residue, sequence)
+
     return sequence[start_residue-1:start_residue-1+len(subsequence)]==subsequence
 
 def get_max_overlap(peptides, n_residues):
@@ -454,7 +447,7 @@ def open_md_prior_file(file, sequence, sigma=None):
     for l in f.readlines():
         if l[-1]=="\n":
             l = l[0:-1]
-        #print(l, l.split(" "))
+
         if len(l.split()) <3:
             return pf_list
         resn = int(l.split()[0].split("_")[1])
