@@ -15,8 +15,6 @@ import os
 from itertools import combinations_with_replacement
 from itertools import permutations
 
-# if exp(-diff/temp) > rand: accept
-
 def metropolis_criteria(old_score, new_score, temp, proposal_ratio=0.4):
     # Returns True if move is accepted, False if move is not accepted
     #print(old_score, new_score)
@@ -230,6 +228,73 @@ class MCSampler(object):
         if initialize:
             for s in self.states:
                 s.initialize()
+
+    def run_adaptive_sampling(self, steps_per_eval=500, 
+                    adaptive_steps=100, 
+                    acceptance_bounds=(0.1,0.35), 
+                    tmax=100.0, tmin=0.1, 
+                    tinit=None, grid="Exponential", 
+                    grid_size=100, write=True, quiet=False):
+        '''
+        Mini-macro for performing adaptive MC sampling.
+
+        Lowers the temperature if the MC acceptance ratio is higher than the given bounds. Raises the temperature if the MC acceptance ratio
+        is lower than the given bounds.
+
+        Total # of steps = steps_per_eval * adaptive_steps
+
+        @param steps_per_eval :: Number of steps for each adaptive trial
+        @param adaptive_steps :: Number od adaptive trials. 
+        @param acceptance_bounds :: Minimum and maximum MC acceptance ratio to continue at this temperature
+        @param tmax :: maximum temperature for the method. 100 should be fine.
+        @param tmin :: minimum temperature.
+        @param tinit :: Initial temperature. Must be between tmax and tmin. If "None", it is set to tmax
+        @param grid :: Type of grid. "Exponential" has larger step sizes at high temp and smaller at lowe temp. "Uniform" has the same number throughout
+        '''
+        print("********")
+        print("Starting Adaptive Sampling")
+        print("********")
+
+        # Build the temperature grid used for adaptive sampling
+        Tgrid = numpy.zeros(grid_size)
+        if grid == "Exponential":
+            deltaT = math.exp(math.log(tmin/tmax)/grid_size)
+            for g in range(grid_size):
+                Tgrid[g]=tmax * (deltaT ** g)
+        elif grid == "Uniform":
+            deltaT = (1.0*tmax-tmin)/adaptive_steps
+            for g in range(grid_size):
+                Tgrid[g]=tmax-g*deltaT
+
+        # Set tinit to tmax or the closest grid value to tinit
+        if tinit is None:
+            tinit = tmax
+            Tidx = 0
+        else:
+            Tidx = (np.abs(tgrid - tinit)).argmin()
+            tinit = tgrid[Tidx]
+
+        Tm = tinit
+
+        # Run adaptive_steps chunks of simulations
+        for s in range(adaptive_steps):
+            avg_accept=0
+            for i in range(steps_per_eval):
+                score, model_avg, accept = self.run_one_step(Tm, write)
+                avg_accept+=accept
+
+            avg_accept /= steps_per_eval
+            #print(avg_accept, acceptance_bounds, avg_accept < acceptance_bounds[0], avg_accept > acceptance_bounds[1])
+            # Do evaluation of acceptance ratio
+            if avg_accept < acceptance_bounds[0] and Tidx > 0:
+                Tidx-=1
+            elif avg_accept > acceptance_bounds[1] and Tidx < grid_size:
+                Tidx+=1
+              
+            if not quiet:
+                print('Temp: %2.2f | Score: %2.1f | Accept: %2.2f' % (Tm, score, avg_accept))
+            
+            Tm = Tgrid[Tidx]
 
 
     def run_exponential_temperature_decay(self, tmax=100, tmin=2.0, 
@@ -570,6 +635,9 @@ def simulated_annealing(model, sigma, sample_sig=True, equil_steps=10000, anneal
                         save_results=True, outdir=outdir, outfile_prefix=outfile_prefix, noclobber=noclobber)
 
 
+
+
+
 def enumerate_fragment(frag, exp_grid, sig, num_models = 1):
     """Enumerates and scores all possible models for the given an exp_grid
     returns the top num_models scoring exp grids"""
@@ -577,7 +645,7 @@ def enumerate_fragment(frag, exp_grid, sig, num_models = 1):
     nbin = len(exp_grid)
     num = n
     possible_number_combinations = list(combinations_with_replacement(range(n), nbin))
-    #all_possible_combinations = list(product(range(n), repeat=nbin))
+
     score = 0
     minscore = 1.0*pow(10,34)
 
@@ -599,6 +667,5 @@ def enumerate_fragment(frag, exp_grid, sig, num_models = 1):
                     minmodel = grid
                     minscore = score
 
-    #print(numpy.array(minmodel), minscore)
     return numpy.array(minmodel)
 
