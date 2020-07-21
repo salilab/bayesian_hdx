@@ -145,7 +145,7 @@ class EnumerationSampler(object):
         
         m = self.states[0].output_model 
 
-    def uun(self, write=False):
+    def run(self, write=False):
         """Enumerates and scores all possible models for the given an exp_grid
         returns the top num_models scoring exp grids"""
         output = self.states[0].macromolecule.system.get_output()
@@ -207,6 +207,12 @@ class MCSampler(object):
             raise Exception("You must pass a System, State or Macromolecule object")
 
         self.states = states
+
+        self.output = self.states[0].macromolecule.system.get_output()
+        self.output_files = []
+
+        for s in self.states:
+            self.output_files.append(open(self.output.get_output_file(s), "a"))
 
         m = self.states[0].output_model
 
@@ -295,6 +301,8 @@ class MCSampler(object):
                 print('Temp: %2.2f | Score: %2.1f | Accept: %2.2f' % (Tm, score, avg_accept))
             
             Tm = Tgrid[Tidx]
+
+        return Tm
 
 
     def run_exponential_temperature_decay(self, tmax=100, tmin=2.0, 
@@ -445,7 +453,9 @@ class MCSampler(object):
         total_score = 0
         acceptance_ratio = 0
 
-        for state in self.states:
+        for s in range(len(self.states)):
+
+            state = self.states[s]
 
             init_model = deepcopy(state.output_model.model)
             init_score = state.get_score()
@@ -510,6 +520,7 @@ class MCSampler(object):
             #state.set_score(final_state_score)
             total_score += state.get_score() #final_state_score
 
+
             '''
             mpf = state.output_model.get_current_model()
             tot_mpf = 0
@@ -522,6 +533,10 @@ class MCSampler(object):
             '''
 
             acceptance_ratio += float(flips2)/int(max(math.ceil((self.pct_moves * len(resis))/100.), 1))
+
+            if write:
+                self.output.write_model_to_file(self.output_files[s], state, state.output_model.get_model(), state.score, acceptance_ratio, sigmas=True)
+
             #print(state.name, state.output_model.get_model()[5:15])
             #print("NUMFLIPS", state.name, flips, flips2, float(flips2)/int(max(math.ceil((self.pct_moves * len(resis))/100.), 1)))
         model_avg = [numpy.average(s.output_model.get_current_model()) for s in self.states]
@@ -633,9 +648,6 @@ def simulated_annealing(model, sigma, sample_sig=True, equil_steps=10000, anneal
     # Equilibrium run  
     do_mc_sampling(model, 1.0, sigma, NSTEPS=equil_steps, sample_sigma=sample_sigma, print_t=print_t,
                         save_results=True, outdir=outdir, outfile_prefix=outfile_prefix, noclobber=noclobber)
-
-
-
 
 
 def enumerate_fragment(frag, exp_grid, sig, num_models = 1):
