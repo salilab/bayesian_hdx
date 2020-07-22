@@ -1254,11 +1254,13 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
          2) Plot the mean/SD along with experimental values
          3) Write plot to the output directory
     '''
-    print(" --- Plotting incorporation curve fits for state", po.state_name)
-
+    
     state_name_prefix = po.state_name
+    print(" --- Plotting incorporation curve fits for state", state_name_prefix)
+
+
     if output_directory is None:
-        output_directory = po.state_name+"/incorporation_plots/"
+        output_directory = "state_"+state_name_prefix+"/incorporation_plots/"
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
