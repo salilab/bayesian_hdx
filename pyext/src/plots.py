@@ -44,7 +44,6 @@ def calculate_histogram(list, bins):
     # Given a list of values, calculate a histogram
     return numpy.histogram(numpy.array(list), bins=bins)
 
-
 def create_sequence_figure_axes(ax, sequence, resis_per_line=40, vertical_buffer=20):
     '''
     Given an pyplot.axis object, format the axis 
@@ -71,6 +70,64 @@ def set_logpf_ytick_params(ax):
     ax.tick_params(axis='y', which='both',width=0.5, length=3)
     ax.set_yticks([0,4,8,12])
     ax.set_ylim([-2,10])
+
+def plot_dhdx(ax, diff, z, offset=0, show_plot=True, save_plot=False, outfile="dhdx.png", outdir = ""):
+    if outdir is not "":
+        os.makedirs(outdir, exist_ok=True)
+
+    # Create color bar
+    my_cmap=matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict1,256)
+    # Normalize colormap to delta log(k) = 5 as maxes
+    cNorm = matplotlib.colors.Normalize(vmin=-5., vmax=5.)
+    scalarMap = matplotlib.cm.ScalarMappable(norm=cNorm, cmap=my_cmap)
+
+    # Allow these possible xtics.  Want about 4-6 per plot
+    p_xtics = [5,10,20,50,100,200]
+    p = list((numpy.array(p_xtics)-len(diff)/4.)**2)
+    xtics = p_xtics[p.index(min(p))]
+
+    xin = []
+    color=[]
+    for n in range(len(diff)):
+        
+        # Calculate residue color
+        rgba=scalarMap.to_rgba(diff[n]) 
+        lst=list(rgba)
+        
+        # calculate saturation (|Z|>3.0) is full saturation, linear scale
+        if abs(z[n])>3.0:
+            lst[3]=1.0
+        else:
+            lst[3]=abs(z[n])/3.0
+        print(n, lst)
+        # Append the xin and color tuples
+        xin.append((n+offset+0.5,1))
+        rgba=tuple(lst)
+        color.append(lst)
+    
+    yin = (0,1)
+
+    # Plot bar and close outfile
+    ax.broken_barh(xin,yin, color=color, lw=0)
+    ax.grid(True)
+
+    ax.get_xaxis().set_ticks(range(1,len(diff)+1,xtics))
+    ax.get_yaxis().set_ticks([])
+    ax.set_xlim([0,len(diff)+1])
+    ax.set_ylim([0,1])
+    ax.set_xlabel('Residue Number', fontsize=10)
+
+    # Add axes to bottom [left, bottom, width, height] for colormap
+    #cax = fig.add_axes([0.3,0.2,0.4,0.02])
+    #cb = matplotlib.colorbar.ColorbarBase(cax, cmap=my_cmap, norm=cNorm, spacing='proportional', orientation='horizontal')
+    #cb.set_label('\deltaHDX log(k)', fontsize=10)
+    
+    if show_plot==True:
+        fig.show()
+    if save_plot==True:
+        fig.savefig(outdir + outfile, bbox_inches=0)
+
+    return my_cmap
 
 def plot_apo_lig_dhdx(model, show_plot=True, save_plot=False, outfile="dhdx.png", outdir=None, noclobber=True):
     """ Takes a sampled model and plots the delta HDX (ligand - Apo) 
@@ -843,7 +900,7 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
     plt.savefig("test_violins.png", dpi=300, format="png")
     plt.show()
 
-def plot_priors(sfunc, n_residues, protection_factors=None):
+def plot_priors(sfunc, n_residues, protection_factors=None, outfile="priors.png", dpi=300):
     if protection_factors is None:
         protection_factors = numpy.arange(-2,10,0.1)
 
@@ -856,7 +913,7 @@ def plot_priors(sfunc, n_residues, protection_factors=None):
 
     plot_violin_distributions(prior_likelihoods, protection_factors)
 
-    plt.show()
+    plt.savefig(outfile, dpi=dpi)
 
 def plot_violin_distributions(dists, yvals, figwidth=10, figheight=3, index_range=None, ax=None, label_skip=20, color="black", alpha=0.5):
     '''
@@ -1101,10 +1158,11 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     for nd in resrange:
         # n is the plot index; nd is the residue index
         n = nd - resrange[0]
-        x_lists = data[n]   
+        x_lists = data[n]  
+        # Loop over all datasets 
         for i in range(len(x_lists)):
-            xl = x_lists[i]
-            arr = numpy.array(xl)
+            xl = x_lists[i] 
+            arr = numpy.array(xl) # arr is the histogram
 
             ax[n].set_xticks([]) 
 
@@ -1226,9 +1284,9 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
         init_string = ""
         for tp in sorted_times:
             init_string += str(tp)+"s, "
-        chi_out.write("Pep_seq, start_res, chi^2 | "+init_string[:-2])
+        chi_out.write("Pep_seq, start_res, chi^2 | "+init_string[:-2]+"\n")
 
-        print("  Peptide | Chi^2")
+        #print("  Peptide | Chi^2")
         for pep in d.get_peptides():
 
             # pep_id is the data_dict identifier for each peptide
@@ -1285,7 +1343,7 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
             chi_out.write(pep.sequence +", " +str(pep.start_residue) +", " +str(tot_chi) + " | "+chi_string[:-2])
 
             fig, ax = plot_incorporation_curve_spread(model_deuteration_by_time, exp_deuteration_by_peptide_time[pep_id])
-            print("  "+str(pep.start_residue)+"_"+pep.sequence+"\t|\t %.2f2" % tot_chi)
+            #print("  "+str(pep.start_residue)+"_"+pep.sequence+"\t|\t %.2f2" % tot_chi)
             ax.set_title(str(pep.start_residue) + "-" + pep.sequence)
     
             if log_time:
