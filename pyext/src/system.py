@@ -36,8 +36,13 @@ class System(object):
         """
 
         # Check that sequence is a string
-        if not isinstance(sequence, basestring):
-            raise Exception("Please input a string or filepath as the sequence input")
+        pyversion = sys.version_info[0] 
+        if pyversion == 2:
+            if not isinstance(sequence, basestring):
+                raise Exception("Please input a string or filepath as the sequence input")
+        elif pyversion == 3:
+            if not isinstance(sequence, str):
+                raise Exception("Please input a string or filepath as the sequence input")           
 
         # if there is a period, then we will assume that it is a filepath
         if "." in sequence:
