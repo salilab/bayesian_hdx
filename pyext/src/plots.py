@@ -72,7 +72,7 @@ def set_logpf_ytick_params(ax):
     ax.set_ylim([-2,10])
 
 def plot_dhdx(ax, diff, z, offset=0, show_plot=True, save_plot=False, outfile="dhdx.png", outdir = ""):
-    if outdir is not "":
+    if outdir != "":
         os.makedirs(outdir, exist_ok=True)
 
     # Create color bar
@@ -791,7 +791,7 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
     # Outputs a plot with a sing
     import csv
 
-    colors = ["red", "blue", "yellow", "green"]
+    colors = ["red", "blue", "yellow", "green", "orange", "darkred"]
 
     resnum_label_skip=10
 
@@ -1068,7 +1068,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     # Outputs a plot with a sing
     import csv
 
-    colors = ["red", "blue", "yellow", "green"]
+    colors = ["red", "blue", "yellow", "green", "orange", "darkred"]
 
     resnum_label_skip = resnum_skip
 
@@ -1435,7 +1435,7 @@ def plot_incorporation_curve_spread(deuteration_by_time, exp, ax=None, color='bl
     for time in exp.keys():
         ax.scatter(time, numpy.mean(deuteration_by_time[time]), c='red', marker='o', s=12)
 
-    plt.fill_between(times, q_data[qs[1]], q_data[qs[3]], facecolor='red', alpha='0.2')
+    plt.fill_between(times, q_data[qs[1]], q_data[qs[3]], facecolor='red', alpha=0.2)
 
     for time in exp.keys():
         for value in exp[time]:
