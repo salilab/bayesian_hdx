@@ -447,6 +447,56 @@ class MCSampler(object):
         for of in output_files:
             of.close()  
 
+    def run_one_swap(self, state, resis_to_swap, temperature, write=False):
+        '''
+        This step swaps the protection factor value for two residues.
+
+        The residues are selected from a sets of "chunks".  A "Chunk" can be the entire sequence, a "region"
+        or "sectors".
+
+        Eventually, should be able to
+        '''
+        total_score = 0
+        acceptance_ratio = 0
+
+        init_model = deepcopy(state.output_model.model)
+        init_score = state.get_score()
+
+        # Randomly choose two of the residues
+        shuffle(resis_to_swap)
+        r1 = resis_to_swap[0]
+        r2 = resis_to_swap[1]
+
+        oldval1 = int(state.output_model.get_model_residue(r1))
+        oldval2 = int(state.output_model.get_model_residue(r2))
+        oldscore = state.get_score()
+
+        state.change_single_residue_incorporation(r1, oldval2)
+        state.change_single_residue_incorporation(r2, oldval1)
+
+        newscore = state.calculate_peptides_score(state.get_all_peptides(), state.output_model.get_current_model())
+        state.set_score(newscore)
+
+        accept = metropolis_criteria(oldscore, newscore, temperature)
+        #print(" ", oldscore, newscore, r, oldval, newval, accept, flips)
+        if not accept:
+            state.output_model.change_residue(r1, oldval1)
+            state.output_model.change_residue(r2, oldval2)
+            state.change_single_residue_incorporation(r1, oldval1)
+            state.change_single_residue_incorporation(r2, oldval2)
+            state.set_score(oldscore)
+
+        if write:
+            self.output.write_model_to_file(self.output_files[s], state, state.output_model.get_model(), state.score, acceptance_ratio, sigmas=True)
+
+        model_avg = [numpy.average(s.output_model.get_current_model()) for s in self.states]
+        model_avg_str = ""
+
+        for m in model_avg:
+            model_avg_str+=str(round(m,3))+" "
+
+        return accept
+
     def run_one_step(self, temperature, write=False):
         # Running one MC step over all model states and sigma parameters
         # Loop over all states in self.states
