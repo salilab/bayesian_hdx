@@ -54,6 +54,8 @@ class ScoringFunction(object):
     def get_prior_likelihood(self, res, pf):
         '''
         Given a residue number and a protection factor value, evaluate the prior. 
+        
+        Residue is numbered from 1 to len(sequence).
         '''
         likelihood = 1.0
         for p in self.priors:
@@ -62,6 +64,16 @@ class ScoringFunction(object):
 
         return likelihood
 
+    def precompute_residue_priors(self, len_seq, pf_grids):
+        self.precomputed_residue_priors = numpy.zeros((len_seq, len(pf_grids[0])))
+
+        for s in range(len_seq):
+            for g in range(len(pf_grids[s])):
+                self.precomputed_residue_priors[s][g] = self.get_prior_likelihood(s+1, pf_grids[s][g])
+            factor = sum(self.precomputed_residue_priors[s])
+            for g in range(len(pf_grids[s])):
+                self.precomputed_residue_priors[s][g] = self.precomputed_residue_priors[s][g] / factor
+        return self.precomputed_residue_priors
 
 natural_abundance_prior_types = ["bmrb", "knowledge", "uninformative", "Gaussian", "user"]
 
@@ -204,7 +216,7 @@ class ResiduePfPrior(object):
 
     Precompute these values.
     '''
-    def __init__(self, pf_estimates, scale=1.0, sd_scale=3.0):
+    def __init__(self, pf_estimates, scale=1.0, sd_scale=3.0, pf_grid=(-2, 14, 100)):
         '''
         pf_estimates is in the form (mean, sd).
         For residues without an estimate, denoted by an SD < 0, the prior is flat for any value of Pf
@@ -214,7 +226,7 @@ class ResiduePfPrior(object):
         self.priors = []
         self.estimates = pf_estimates
         self.sd_scale = sd_scale
-        self.pf_grid = numpy.linspace(-2,14,100)
+        self.pf_grid = numpy.linspace(pf_grid[0], pf_grid[1], pf_grid[2])
         self.build_priors()
 
     def build_priors(self):
@@ -245,7 +257,12 @@ class ResiduePfPrior(object):
             #print(p, model[p], numpy.interp(model[p], self.pf_grid, self.priors[p]), self.priors[p])
             
             if model[p] != -99:
-                res_score = -1*math.log(numpy.interp(model[p], self.pf_grid, self.priors[p]))
+                #print(p, model[p], self.priors[p], numpy.interp(model[p], self.pf_grid, self.priors[p]))
+                unlog_score = numpy.interp(model[p], self.pf_grid, self.priors[p])
+                if unlog_score < 10**-50:
+                    #print("LOW", p, model[p], unlog_score, self.priors[p])
+                    unlog_score = 10**-50
+                res_score = -1*math.log(unlog_score)
                 score += res_score
 
         return score * self.prior_scale
@@ -265,6 +282,8 @@ class ResiduePfPrior(object):
 
         '''
         #print(self.priors[res-1])
+        if self.priors[res-1] is numpy.nan:
+            return 1.0
         return numpy.interp(pf, self.pf_grid, self.priors[res-1]) ** self.prior_scale
 
 class UnityPrior(object):
