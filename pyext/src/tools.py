@@ -437,12 +437,12 @@ def open_md_prior_file(file, sequence, sigma=None):
     pf_list = []
 
     nres = len(sequence)
-    pf_list.append((99,99))
+    pf_list.append((99,99, "X"))
     for i in range(1,nres):
         if sequence[i] == "P":
-            pf_list.append((99,99))
+            pf_list.append((99,99,"P"))
         else:
-            pf_list.append((100,100))
+            pf_list.append((100,100,sequence[i]))
 
     for l in f.readlines():
         if l[-1]=="\n":
@@ -457,6 +457,6 @@ def open_md_prior_file(file, sequence, sigma=None):
             sig = sigma
         else:
             sig = float(l.split()[3])
-        pf_list[resn-1] = (pf, sig)
+        pf_list[resn-1] = (pf, sig, res)
 
     return pf_list
