@@ -60,8 +60,8 @@ class Convergence(object):
             mod1 = [(g[0], g[1]) for g in m1]
             mod2 = [(g[0], g[1]) for g in m2]
         else:
-            mod1 = [(g[0], g[1]) for g in m1[0:num_gsm]]
-            mod2 = [(g[0], g[1]) for g in m2[0:num_gsm]]            
+            mod1 = [(g[0], g[1]) for g in m1[0:int(num_gsm)]]
+            mod2 = [(g[0], g[1]) for g in m2[0:int(num_gsm)]]            
         return mod1, mod2         
 
     def total_score_pvalue_and_cohensd(self, num_gsm="all"):
@@ -134,7 +134,6 @@ class Convergence(object):
 
         for i in range(num_models-1):
             for j in range(i+1,num_models): 
-
                 if distmat[i][j]<=threshold:
                     neighbors[i].append(j)
                     neighbors[j].append(i)
@@ -330,17 +329,18 @@ class DeltaHDX(object):
         self.pof1 = pof1
         self.pof2 = pof2
 
-    def calculate_dhdx(self, weighted=True):
+    def calculate_dhdx(self, weighted=False):
         # Calculates delta HDX
         #pf_models1 = numpy.array([m[1][0] for m in self.pof1.get_models(return_pf=True)])
         #pf_models2 = numpy.array([m[1][0] for m in self.pof2.get_models(return_pf=True)])
-        pf_models1 = numpy.array([m[1][0] for m in self.pof1.get_all_models(return_pf=True)])
+        #print(len(self.pof1.get_all_models(return_pf=True)), len(self.pof1.get_all_models(return_pf=True)[0]), self.pof1.get_all_models(return_pf=True)[0][0])
+        pf_models1 = numpy.array([m[1][0] for m in self.pof1.get_all_models(return_pf=True)[0]])
         scores1 = numpy.array([m[0] for m in self.pof1.get_all_models(return_pf=True)])
-        pf_models2 = numpy.array([m[1][0] for m in self.pof2.get_all_models(return_pf=True)])
+        pf_models2 = numpy.array([m[1][0] for m in self.pof2.get_all_models(return_pf=True)[0]])
         scores2 = numpy.array([m[0] for m in self.pof2.get_all_models(return_pf=True)])
 
         if weighted:
-            weights1 = exp(-1*(scores1-min(scores1)))
+            weights1 = numpy.exp(-1*(scores1-min(scores1)))
             mean1 = numpy.average(pf_models1, axis=0, weights=weights1)
             mean2 = numpy.average(pf_models1, axis=0, weights=weights2)
         else:
@@ -384,7 +384,7 @@ class DeltaHDX(object):
         diff, Z, mean1, mean2, sd1, sd2 = self.calculate_dhdx()
 
         for r in resrange:
-            f.write(str(r)+" "+str(sequence[r-1])+" XX %.2f2 %.2f2 %.2f2 %.2f2 %.2f2 %.2f2 \n" % (diff[r-1], Z[r-1], mean2[r-1], mean1[r-1], sd2[r-1], sd1[r-1]))
+            f.write(str(r)+" "+str(sequence[r-1])+" XX %2.2f %2.2f %2.2f %2.2f %2.2f %2.2f \n" % (diff[r-1], Z[r-1], mean2[r-1], mean1[r-1], sd2[r-1], sd1[r-1]))
 
         f.close()
 
@@ -446,6 +446,34 @@ class ParseOutputFile(object):
             return self.get_datasets()[0].sequence
         else:
             return self.seq
+
+    def compute_residue_resolved_moves(self, magnitude=False, model_range=(0,-1)):
+        '''
+        For this POF, compute the number of moves for each residue over all models
+
+        This function loops over all models.
+
+        A move for a single residue is logged when the HDX value is different
+        '''
+        moves = numpy.zeros((len(self.models[0][1]), len(self.pf_grids[list(self.pf_grids.keys())[0]])))
+
+        modm1 = self.models[0][1]
+        # Loop over all models
+        for m in range(1,len(self.models)):
+            if m%10000==0:
+                print("Model", m, "of",len(self.models))
+            mod = self.models[m][1]
+            # Loop over all residues
+            for r in range(len(mod)):
+                mod_diff = abs(mod[r]-modm1[r])
+                moves[r][mod_diff]+=1
+            modm1 = mod
+
+        if magnitude:
+            return moves
+        else:
+            return numpy.sum(moves[:][1:], axis=1)
+
 
     def get_all_peptides(self):
         '''
@@ -850,7 +878,7 @@ class OutputAnalysis(object):
 
     def get_output_file_consistency(self, output_files):
         # For now, just ensure the sequence is the same and 
-        pof_ref = pof1 = ParseOutputFile(self.output_files[0])
+        pof_ref = ParseOutputFile(self.output_files[0])
         seq_ref = pof_ref.get_sequence()
 
         for of in output_files[1:]:
