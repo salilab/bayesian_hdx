@@ -44,22 +44,35 @@ class ResidueGridModel(object):
         self.sample_back_exchange = sample_back_exchange
         self.sample_only_observed_residues = sample_only_observed_residues
 
-    def generate_model(self, random=True, value=1, initialize=False):
+    def generate_model(self, random=True, value=1, initialize=False, prior=False):
         # Using the sequence from the state, generate a random model
         # from the sampling grid
         sequence = self.state.get_sequence()
         model = numpy.zeros(self.length)
-
-        if not random and (type(value) is not int or value > self.grid_size or value < 1):
-            raise Exception("ResidueGridModel.generate_model: Value error. Either allow random assignment or set an integer value from 1 to grid_size")
+        orns = self.state.get_observable_residue_numbers()
+        print("ORN:", orns, 6 not in orns, self.sample_only_observed_residues)
+        #if not random and (type(value) is not int or value > self.grid_size or value < 1):
+        #    raise Exception("ResidueGridModel.generate_model: Value error. Either allow random assignment or set an integer value from 1 to grid_size")
 
         for i in range(self.length):
-
-            if sequence[i] == "P" or (i+1 not in self.state.get_observable_residue_numbers() and self.sample_only_observed_residues):
+            if sequence[i] == "P" or i==0:
+                model[i] = 0
+            elif i+1 not in orns and self.sample_only_observed_residues:
                 model[i] = 0
             else:
                 if random:
                     model[i] = numpy.random.randint(1, high=self.grid_size, size=1)[0]
+                elif prior:
+                    cum_prior = numpy.cumsum(self.state.scoring_function.precomputed_residue_priors[i])
+                    ix = self.state.scoring_function.precomputed_residue_priors[i].argmax()
+                    model[i] = ix+1
+                    #print("<", i+1, sequence[i], cum_prior[-1])
+                    x = numpy.random.rand()
+                    for n in range(len(cum_prior)):
+                        if x < cum_prior[n]:
+                            model[i] = n+1
+                            #print("   --",n, cum_prior[n], x)                             
+                            break
                 else:
                     model[i] = int(value)
         if initialize:
@@ -84,7 +97,6 @@ class ResidueGridModel(object):
     def get_pf(self, res, i):
         # Given an integer and residue number, return the corresponding grid value that
         # Corresponds to the protection factor.
-        #print("PFG", res, i)
         return self.pf_grids[res-1][i-1]
 
     def convert_model_to_protection_factors(self, model):
