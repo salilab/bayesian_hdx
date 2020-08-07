@@ -119,7 +119,6 @@ class SampledFloat(object):
                 sign = numpy.random.randint(0,2) * 2 - 1
                 magnitude = numpy.random.rand() * self.maxdel 
                 new_value = previous + sign * magnitude
-            #print("PROPOSE_MOVE:", new_value, previous, sign, magnitude, self.upper_bound, self.lower_bound)
             return new_value
             '''
             if new_value <= self.upper_bound and new_value >= self.lower_bound:
@@ -164,7 +163,7 @@ class EnumerationSampler(object):
             nbin = len(exp_grid)
             num = n
             possible_number_combinations = list(combinations_with_replacement(range(1,nbin+1), n))
-            #all_possible_combinations = list(product(range(n), repeat=nbin))
+            
             print("Assessing", len(possible_number_combinations), "combinations")
             for model in possible_number_combinations:
 
@@ -290,7 +289,7 @@ class MCSampler(object):
                 avg_accept+=accept
 
             avg_accept /= steps_per_eval
-            #print(avg_accept, acceptance_bounds, avg_accept < acceptance_bounds[0], avg_accept > acceptance_bounds[1])
+            
             # Do evaluation of acceptance ratio
             if avg_accept < acceptance_bounds[0] and Tidx > 0:
                 Tidx-=1
@@ -449,12 +448,9 @@ class MCSampler(object):
 
     def run_one_swap(self, state, resis_to_swap, temperature, write=False):
         '''
-        This step swaps the protection factor value for two residues.
+        This step swaps the protection factor value for two residues from a list of them
 
-        The residues are selected from a sets of "chunks".  A "Chunk" can be the entire sequence, a "region"
-        or "sectors".
-
-        Eventually, should be able to
+        The residues are selected from a set of residues (resis_to_swap)
         '''
         total_score = 0
         acceptance_ratio = 0
@@ -478,7 +474,7 @@ class MCSampler(object):
         state.set_score(newscore)
 
         accept = metropolis_criteria(oldscore, newscore, temperature)
-        #print(" ", oldscore, newscore, r, oldval, newval, accept, flips)
+        
         if not accept:
             state.output_model.change_residue(r1, oldval1)
             state.output_model.change_residue(r2, oldval2)
@@ -489,13 +485,7 @@ class MCSampler(object):
         if write:
             self.output.write_model_to_file(self.output_files[s], state, state.output_model.get_model(), state.score, acceptance_ratio, sigmas=True)
 
-        model_avg = [numpy.average(s.output_model.get_current_model()) for s in self.states]
-        model_avg_str = ""
-
-        for m in model_avg:
-            model_avg_str+=str(round(m,3))+" "
-
-        return accept
+        return accept, (r1, r2), (oldval1, newval1)
 
     def run_one_step(self, temperature, write=False):
         # Running one MC step over all model states and sigma parameters
@@ -510,7 +500,6 @@ class MCSampler(object):
             init_model = deepcopy(state.output_model.model)
             init_score = state.get_score()
 
-            #(state.name, state.output_model.model[5:15])
             ###########################
             # This should be movable particles
             ###########################
