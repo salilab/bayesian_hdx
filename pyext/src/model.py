@@ -176,7 +176,7 @@ class ResidueGridModel(object):
             self.model[residue-1] = value
             self.model_protection_factors[residue-1] = self.pf_grids[residue-1][int(value-1)]
         else:
-            raise Exception("ResidueGridModel.change_residue : value must be between 1 and ", grid_size +1, ". Currently ",  value)           
+            raise Exception("ResidueGridModel.change_residue : value must be between 1 and ", self.grid_size +1, ". Currently ",  value)           
     
     def get_model_residue(self, residue):
         # Returns the integer value of a single residue in the current model
