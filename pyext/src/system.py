@@ -161,13 +161,40 @@ class State(object):
         self.has_model = True
         return self.output_model
 
+    def calculate_regions(self, return_only_observable=True):
+        '''
+        Find independent sets of residues based on the peptide map
+        '''
+        coverage = self.get_coverage()
+        seq = self.sequence
+
+        if len(coverage) != len(seq):
+            print("Coverage and sequence not the same length.  Fishy.")
+
+        regions = []
+        region = []
+        for i in range(len(seq)):
+            if seq[i]=="P":
+                coverage[i]=-1
+        
+        for i in range(len(coverage)):
+            if coverage[i]==0 and len(region)>0:
+                regions.append(region)
+                region=[]
+            elif coverage[i]>0:
+                region.append(i+1)
+            elif coverage[i]==-1 and return_only_observable==False:
+                region.append(i+1)
+
+        return regions
+
     def get_exchanging_residues(self):
         '''
         Returns a list of residue numbers that exchange 
-        (simply the list of non-proline residues)
+        (simply the list of non-proline residues, minus the N-term)
         '''
         exchanging_residues = []
-        for i in range(len(self.sequence)):
+        for i in range(1, len(self.sequence)):
             if self.sequence[i] != "P":
                 exchanging_residues.append(i+1)
 
@@ -467,6 +494,8 @@ class State(object):
 
         if init_model=="random":
             self.output_model.generate_model(initialize=True)
+        elif init_model=="prior":
+            self.output_model.generate_model(initialize=True, random=False, prior=True)
         else:
             self.output_model.generate_model(random=False, value=init_model, initialize=True)
 
