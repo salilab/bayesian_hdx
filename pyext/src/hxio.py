@@ -738,7 +738,7 @@ class Output(object):
 
     def get_output_file(self, state):
         for fn in self.output_model_files:
-            if fn.split("-")[-1].split(".")[0] == state.name:
+            if fn.split("sigmas-")[-1].split(".")[0] == state.name:
                 return fn
 
     def write_model_to_file(self, f, state, model, score, acceptance, sigmas=True):
