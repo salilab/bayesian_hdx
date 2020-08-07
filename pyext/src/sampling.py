@@ -72,7 +72,7 @@ class SampledInt(object):
         else:
             self.old_index = self.range.index(previous)
             new_index = -1
-            while new_index < 0 or new_index >= len(self.range):
+            while new_index < 1 or new_index >= len(self.range):
                 sign = numpy.random.randint(0,2) * 2 - 1
                 magnitude = self.get_magnitude()
                 new_index = int(self.old_index + magnitude * sign)
@@ -165,7 +165,7 @@ class EnumerationSampler(object):
             num = n
             possible_number_combinations = list(combinations_with_replacement(range(1,nbin+1), n))
             #all_possible_combinations = list(product(range(n), repeat=nbin))
-            print("Assessing", possible_number_combinations, "combinations")
+            print("Assessing", len(possible_number_combinations), "combinations")
             for model in possible_number_combinations:
 
                 for n in range(len(resis)):
@@ -210,10 +210,10 @@ class MCSampler(object):
 
         self.output = self.states[0].macromolecule.system.get_output()
         self.output_files = []
-
+         
         for s in self.states:
             self.output_files.append(open(self.output.get_output_file(s), "a"))
-
+        
         m = self.states[0].output_model
 
         if m.sampler_type == "int":
@@ -277,8 +277,8 @@ class MCSampler(object):
             tinit = tmax
             Tidx = 0
         else:
-            Tidx = (np.abs(tgrid - tinit)).argmin()
-            tinit = tgrid[Tidx]
+            Tidx = (numpy.abs(Tgrid - tinit)).argmin()
+            tinit = Tgrid[Tidx]
 
         Tm = tinit
 
@@ -294,7 +294,7 @@ class MCSampler(object):
             # Do evaluation of acceptance ratio
             if avg_accept < acceptance_bounds[0] and Tidx > 0:
                 Tidx-=1
-            elif avg_accept > acceptance_bounds[1] and Tidx < grid_size:
+            elif avg_accept > acceptance_bounds[1] and Tidx < grid_size-1:
                 Tidx+=1
               
             if not quiet:
@@ -474,16 +474,19 @@ class MCSampler(object):
             flips = int(max(math.ceil((self.pct_moves * len(resis))/100.), 1))
             # Flip a number of residues
 
-
             for r in resis[:flips]:
                 # Get the sector that holds this residue           
                 #r_sector = state.residue_sector_dictionary[r]
                 # Get the current value for this residue
                 oldval = int(state.output_model.get_model_residue(r))
+                if oldval==0:
+                    raise Exception("MCSampler: Old value should never be zero. This is a bug.", r)
+                
                 # Propose a new value given the current state
                 oldscore = state.get_score()
-                #print(r, oldval, oldscore, state.output_model.get_model())
                 newval = self.residue_sampler.propose_move(oldval) 
+                if newval==0:
+                    raise Exception("MCSampler: New value should never be zero. This is a bug.", r)
 
                 # Change the residue incorporation values in each sector and calculate the new score:
                 state.change_single_residue_incorporation(r, newval)
@@ -648,6 +651,9 @@ def simulated_annealing(model, sigma, sample_sig=True, equil_steps=10000, anneal
     # Equilibrium run  
     do_mc_sampling(model, 1.0, sigma, NSTEPS=equil_steps, sample_sigma=sample_sigma, print_t=print_t,
                         save_results=True, outdir=outdir, outfile_prefix=outfile_prefix, noclobber=noclobber)
+
+
+
 
 
 def enumerate_fragment(frag, exp_grid, sig, num_models = 1):
