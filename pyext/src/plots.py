@@ -904,24 +904,39 @@ def plot_priors(sfunc, n_residues, protection_factors=None, outfile="priors.png"
     if protection_factors is None:
         protection_factors = numpy.arange(-2,10,0.1)
 
+    if not hasattr(sfunc, '__iter__'):
+        sfunc = [sfunc]
+    colors = ["red", "blue", "yellow", "green", "black"]
+
     prior_likelihoods = []
     for i in range(1,n_residues+1):
         like = numpy.empty(len(protection_factors))
         for pf in range(len(protection_factors)):
-            like[pf] = sfunc.get_prior_likelihood(i, protection_factors[pf])
+            like[pf] = sfunc[0].get_prior_likelihood(i, protection_factors[pf])
         prior_likelihoods.append(like/numpy.linalg.norm(like))
 
-    plot_violin_distributions(prior_likelihoods, protection_factors)
+    if len(sfunc) == 1:
+        fig,ax = plot_violin_distributions(prior_likelihoods, protection_factors, color="black")
+    else:
+        fig,ax = plot_violin_distributions(prior_likelihoods, protection_factors, color=colors[0])
+        for j in range(1, min(len(sfunc), len(colors))):
+            prior_likelihoods = []
+            for i in range(1,n_residues+1):
+                like = numpy.empty(len(protection_factors))
+                for pf in range(len(protection_factors)):
+                    like[pf] = sfunc[j].get_prior_likelihood(i, protection_factors[pf])
+                prior_likelihoods.append(like/numpy.linalg.norm(like))
+            fig, ax = plot_violin_distributions(prior_likelihoods, protection_factors, ax=ax, color=colors[j])
 
     plt.savefig(outfile, dpi=dpi)
 
-def plot_violin_distributions(dists, yvals, figwidth=10, figheight=3, index_range=None, ax=None, label_skip=20, color="black", alpha=0.5):
+def plot_violin_distributions(dists, yvals, figwidth=10, figheight=2, index_range=None, ax=None, label_skip=20, color="black", alpha=0.5):
     '''
     Given a 2D matrix of distributions, plot them as individual violin plots
     '''
 
     xlim = numpy.nanmax(dists)
-
+    
     res_ixs = range(len(dists))
     if index_range is not None:
         if index_range[1] < len(dists):
@@ -929,10 +944,12 @@ def plot_violin_distributions(dists, yvals, figwidth=10, figheight=3, index_rang
         else:
             raise Exception("index range must be contained in residue range", len(dists))
 
-    fig, ax = plt.subplots(1, len(res_ixs), sharey='row', figsize=(figwidth,figheight))
+    if ax is None:
+        fig, ax = plt.subplots(1, len(res_ixs), sharey='row', figsize=(figwidth,figheight))
+    else:
+        fig = ax[0].get_figure()
 
     for r in res_ixs:
-
         ax[r].set_xticks([])
         ax[r].set_yticks([0,4,8])
         ax[r].tick_params(axis='y', which='both',width=0.15, length=2)
@@ -984,7 +1001,7 @@ def plot_violin_distributions(dists, yvals, figwidth=10, figheight=3, index_rang
 
     #ax[0].tick_params(axis='y', which='major', labelsize=8)
 
-    return fig
+    return fig, ax
 
 def plot_rhat_from_output_file(output_file, ax=None, show=False, outfile=None):
 
@@ -1082,7 +1099,9 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
 
     for po in parse_output:
         po_states+=po.state_name+"_"
-        data_list.append(po.get_best_scoring_models(num_best_models, return_pf=True, sort_sectors=sort_sectors))
+        bsm = po.get_best_scoring_models(num_best_models, return_pf=True, sort_sectors=sort_sectors)
+        if len(bsm) > 10:
+            data_list.append(po.get_best_scoring_models(num_best_models, return_pf=True, sort_sectors=sort_sectors))
 
     # data_list contains a list of a list of models.  
     #   The first index is the number of ParseOutput objects
@@ -1098,9 +1117,10 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     minbin = -2#int(numpy.min(minarr[~numpy.isnan(minarr)]))
 
     pf_list = []
+
     # pf_list is an array of models
     for d in data_list:
-        pfs = []   
+        pfs = []
         # Loop over all models in this list     
         for i in d:
             # Append just the model itself. 
@@ -1160,10 +1180,10 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
         n = nd - resrange[0]
         x_lists = data[n]  
         # Loop over all datasets 
-        for i in range(len(x_lists)):
+        for i in range(min(len(x_lists),5)):
             xl = x_lists[i] 
             arr = numpy.array(xl) # arr is the histogram
-
+            
             ax[n].set_xticks([]) 
 
             if nd%resnum_label_skip == 0 or nd==1:
@@ -1188,7 +1208,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
                 ax[n].fill_betweenx(x,0,1.0*numpy.ones(len(x))/len(x),facecolor='grey',alpha=0.5, lw=0)
                 ax[n].fill_betweenx(x,0,-1.0*numpy.ones(len(x))/len(x),facecolor='grey',alpha=0.5, lw=0)
 
-            if not math.isnan(arr[0]):
+            if not math.isnan(arr[0]): 
                 ax[n].fill_betweenx(x,0,arr,facecolor=colors[i],alpha=0.5, lw=0)
                 ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)   
                 # Add in lower bar for information content
@@ -1220,11 +1240,11 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
         if not os.path.exists(outputdir):
             os.makedirs(outputdir)
         if sort_sectors:
-            plt.savefig(outputdir+"/protection_factor_distributions_sorted"+po_states[:-1]+".png", dpi=1000, format="png")
+            plt.savefig(outputdir+"/protection_factor_distributions_sorted.png", dpi=600, format="png")
         else:
-            plt.savefig(outputdir+"/protection_factor_distributions"+po_states[:-1]+".png", dpi=1000, format="png")
+            plt.savefig(outputdir+"/protection_factor_distributions.png", dpi=600, format="png")
     else:
-        plt.savefig("protection_factor_distributions"+po_states[:-1]+".png", dpi=1000, format="png")
+        plt.savefig("protection_factor_distributions-"+po_states[:-1]+".png", dpi=600, format="png")
     if show:
         plt.show()
 
