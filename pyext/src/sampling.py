@@ -446,6 +446,56 @@ class MCSampler(object):
         for of in output_files:
             of.close()  
 
+    def run_one_shift(self, state, residue, temperature, adjacency=None):
+        '''
+        This step takes a single residue (or one randomly from a list of residues)
+        and proposes a change
+        '''
+        if type(residue) is int:
+            residue = [residue]
+        else:
+            try:
+                iter(residue)
+                if type(residue[0]) is not int:
+                    raise Exception("MCSampler.run_one_shift: residue must be an integer or list of integers", residue)
+            except Exception:
+                raise Exception("MCSampler.run_one_shift: residue must be an integer or list of integers", residue)
+
+        shuffle(residue)
+
+        res = residue[0]
+
+        oldval = int(state.output_model.get_model_residue(res))
+
+        # Adjust adjacency if needed
+        if adjacency is not None:
+            old_adj = self.residue_sampler.adjacency
+            self.residue_sampler.set_adjacency(True, adjacency)
+
+        # get the old score
+        oldscore = state.get_score()
+
+        # Propose the move
+        newval = self.residue_sampler.propose_move(oldval) 
+
+        # Reset the adjacency
+        self.residue_sampler.set_adjacency(True, old_adj)
+
+        # Change the residue incorporation values in each sector and calculate the new score:
+        state.change_single_residue_incorporation(res, newval)
+        newscore = state.calculate_peptides_score(state.get_all_peptides(), state.output_model.get_current_model())
+        state.set_score(newscore)
+
+        accept = metropolis_criteria(oldscore, newscore, temperature)
+
+        if not accept:
+            state.output_model.change_residue(res, oldval)
+            state.change_single_residue_incorporation(res, oldval)
+            state.set_score(oldscore)
+
+        return accept, res, (oldval, newval)
+
+
     def run_one_swap(self, state, resis_to_swap, temperature, write=False):
         '''
         This step swaps the protection factor value for two residues from a list of them
@@ -485,7 +535,7 @@ class MCSampler(object):
         if write:
             self.output.write_model_to_file(self.output_files[s], state, state.output_model.get_model(), state.score, acceptance_ratio, sigmas=True)
 
-        return accept, (r1, r2), (oldval1, newval1)
+        return accept, (r1, r2), (oldval1, oldval2)
 
     def run_one_step(self, temperature, write=False):
         # Running one MC step over all model states and sigma parameters
