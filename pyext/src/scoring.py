@@ -26,6 +26,17 @@ class ScoringFunction(object):
         self.forward_model = fwd_model
         self.priors = [UnityPrior()]
 
+    def evaluate_priors(self, model):
+        '''
+        given a model, evaluate all the priors
+        '''
+        score = 0
+        for p in self.priors:
+            pscore = p.evaluate(model)
+            score+=pscore
+
+        return pscore
+    
     def add_prior(self, prior):
         self.priors.append(prior)
 
@@ -40,10 +51,8 @@ class ScoringFunction(object):
 
         total_score, peptides_score = self.forward_model.evaluate(model_values, peptides)
 
-        for p in self.priors:
-            pscore = p.evaluate(model_values)
-            total_score += pscore
-
+        total_score += self.evaluate_priors(model_values)
+        
         return total_score, peptides_score
 
     def print_components(self):
@@ -74,6 +83,39 @@ class ScoringFunction(object):
             for g in range(len(pf_grids[s])):
                 self.precomputed_residue_priors[s][g] = self.precomputed_residue_priors[s][g] / factor
         return self.precomputed_residue_priors
+
+class OccamsPrior(object):
+    '''
+    A restraint that keeps N states similar to one another
+    '''
+    def __init__(self, states, constant, weight):
+        self.states = states
+        self.pf_prior = False
+        self.weight = weight
+        self.constants = numpy.ones(len(states[0].sequence))*constant
+
+    def set_constants(constants):
+        self.constants=constants
+
+    def set_weight(weight):
+        self.weight=weight
+
+    def evaluate(self, model):
+        score = 0
+        for i in range(len(self.states)):
+            modi = self.states[i].output_model.model_protection_factors
+            for j in range(i+1, len(self.states)):
+                # Compare models for states i and j
+                modj = self.states[i].output_model.model_protection_factors
+
+                for p in range(len(modi)):
+                    if modi[p]==-99 or modi[p]==-99:
+                        continue
+                    score+=self.constants[p]*abs(modi[p]-modi[p])**2
+        return score*self.weight
+
+
+
 
 natural_abundance_prior_types = ["bmrb", "knowledge", "uninformative", "Gaussian", "user"]
 
