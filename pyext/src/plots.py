@@ -125,7 +125,7 @@ def plot_dhdx(ax, diff, z, offset=0, show_plot=True, save_plot=False, outfile="d
     if show_plot==True:
         fig.show()
     if save_plot==True:
-        fig.savefig(outdir + outfile, bbox_inches=0)
+        fig.savefig(outdir + outfile, bbox_inches=0, transparent=True)
 
     return my_cmap
 
@@ -257,7 +257,7 @@ def plot_apo_lig_dhdx(model, show_plot=True, save_plot=False, outfile="dhdx.png"
     if show_plot==True:
         fig.show()
     if save_plot==True:
-        fig.savefig(outdir + outfile, bbox_inches=0)
+        fig.savefig(outdir + outfile, bbox_inches=0, transparent=True)
 
 
 def plot_fragment_chi_values(state, sig="model", outfile=None, show_plot=False, outdir="./output/"):
@@ -1018,7 +1018,7 @@ def plot_rhat_from_output_file(output_file, ax=None, show=False, outfile=None):
         plt.show()
 
     if outfile is not None:
-        plt.savefig(outfile)
+        plt.savefig(outfile, transparent=True)
 
     return ax
 
@@ -1068,7 +1068,7 @@ def plot_rhat(rhats, ax=None, color=None, show=False, outfile=None, dpi=300):
         matplotlib.use("agg")
 
     if outfile is not None:
-        plt.savefig(outfile, dpi=dpi)
+        plt.savefig(outfile, transparent=True, dpi=dpi)
 
     return ax
         
@@ -1240,11 +1240,11 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
         if not os.path.exists(outputdir):
             os.makedirs(outputdir)
         if sort_sectors:
-            plt.savefig(outputdir+"/protection_factor_distributions_sorted.png", dpi=600, format="png")
+            plt.savefig(outputdir+"/protection_factor_distributions_sorted.png", dpi=600, format="png", transparent=True)
         else:
-            plt.savefig(outputdir+"/protection_factor_distributions.png", dpi=600, format="png")
+            plt.savefig(outputdir+"/protection_factor_distributions.png", dpi=600, format="png", transparent=True)
     else:
-        plt.savefig("protection_factor_distributions-"+po_states[:-1]+".png", dpi=600, format="png")
+        plt.savefig("protection_factor_distributions-"+po_states[:-1]+".png", dpi=600, format="png", transparent=True)
     if show:
         plt.show()
 
@@ -1261,7 +1261,7 @@ def plot_sampling_convergence_stats(pvals, cvs, percents, cutoff_list, sampling_
         ax.plot([sampling_precision, sampling_precision], [0,1], marker=None, lw=1.0, color="black", ls=":")
 
     if outfile is not None:
-        plt.savefig(outfile, dpi=dpi)
+        plt.savefig(outfile, dpi=dpi, transparent=True)
     if show:
         plt.show()
 
@@ -1385,7 +1385,7 @@ def plot_incorporation_curve_fits(po, num_models, write_plots=True, single_plot=
                 except:
                     pass
             
-                fig.savefig(output_directory  + str(pep.start_residue) + "_" + pep.sequence + "_NM" + str(num_models) +".png")
+                fig.savefig(output_directory  + str(pep.start_residue) + "_" + pep.sequence + "_NM" + str(num_models) +".png", transparent=True)
             plt.close(fig)
 
 def plot_incorporation_curve(deuteration_by_time, exp, ax=None, color='blue', plot=False):
@@ -1517,7 +1517,7 @@ def plot_peptide_avg_model_fits(dataset, model_pfs, num_models=100, outfile=None
         if outfile==None:
             plt.show()
         elif show_plot==False:
-            plt.savefig(outfile, bbox_inches=0)      
+            plt.savefig(outfile, bbox_inches=0, transparent=True)      
         else:
             plt.show()
-            plt.savefig(outfile, bbox_inches=0)
+            plt.savefig(outfile, bbox_inches=0, transparent=True)
