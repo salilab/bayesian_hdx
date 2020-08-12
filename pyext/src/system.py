@@ -500,8 +500,8 @@ class State(object):
             self.output_model.generate_model(random=False, value=init_model, initialize=True)
 
         self.calculate_residue_incorporation(self.output_model.model_protection_factors)
-        self.calculate_peptides_score(self.get_all_peptides(), self.output_model.model_protection_factors)
-
+        self.score = self.calculate_peptides_score(self.get_all_peptides(), self.output_model.model_protection_factors)
+        
         for d in self.data:
             d.collect_times()
 
