@@ -571,7 +571,7 @@ def plot_peptides(peptides, n_residues, color_chi=False, chi_max=50, cmap='virid
     ax.set_ylabel('Peptides')
 
     ax.set_ylim([0,max_overlap+0.5])
-    ax.set_xlim([0,n_residues+1.0])
+    ax.set_xlim([0.5,n_residues+0.5])
     ax.set_yticks([])
 
     #if color_chi:
@@ -670,7 +670,7 @@ def plot_sectors(state, axes):
     #    ylims = ax.get_ylim()
     #    ax.plot([max(sr)+0.5,max(sr)+0.5], ylims, ls=":", lw=0.5, color="darkgreen")        
 
-def plot_pf_distributions_and_peptide_chis(pof, width_scale = 1.0, outfile="pfs_and_chis.png", dpi=300):
+def plot_pf_distributions_and_peptide_chis(pof, width_scale = 1.0, outfile="pfs_and_chis.png", dpi=300, chi_max=5):
     '''
     Given a POF object, plot the peptide overlap, colored by chi value
     and the peptide distribution profiles.
@@ -679,13 +679,19 @@ def plot_pf_distributions_and_peptide_chis(pof, width_scale = 1.0, outfile="pfs_
     '''
     pep_chis = pof.calculate_peptide_chis()
     peptides = pof.get_all_peptides()
+    non_nan_peptides = []
+    non_nan_peptide_chis = []
 
     for p in range(len(peptides)):
         peptides[p].chi = pep_chis[p]
+        if not math.isnan(peptides[p].chi):
+            non_nan_peptides.append(peptides[p])
+            non_nan_peptide_chis.append(peptides[p].chi)
 
     max_overlap = tools.get_max_overlap(peptides, len(pof.sequence))
 
     fig = plt.figure(figsize=(10*width_scale,max_overlap/4.0 + 2))
+    
     gs = gridspec.GridSpec(2, len(pof.sequence), height_ratios=[max_overlap/20.0, 1]) 
     gs.update(wspace=0.0, hspace=0.1)
     ax0 = fig.add_subplot(gs[0, :])
@@ -693,22 +699,30 @@ def plot_pf_distributions_and_peptide_chis(pof, width_scale = 1.0, outfile="pfs_
     # Put residue lines on the peptides plot
     xt = [1] + list(range(20,len(pof.sequence), 20))
     for x in xt:
-        ax0.plot([x,x],[-1,max_overlap+0.5], color="black", lw=0.5)
-
-    #ax0.set_xticks(xt)
+        ax0.plot([x,x],[-0.5,max_overlap+0.5], color="black", lw=0.5)
 
     # Figure out way to determine residue ticks
     xtickspacing = 20
 
-    plot_peptides(pof.get_all_peptides(), len(pof.sequence), color_chi=True, chi_max=math.ceil(max(pep_chis)), outfile=None, ax=ax0)
+    plot_peptides(non_nan_peptides, len(pof.sequence), color_chi=True, chi_max=chi_max, outfile=None, ax=ax0)
     ax0.axis('off')
-
-    ax = plot_residue_protection_factors([pof], gridspec=gs, fig=fig, return_ax=True, resnum_skip=20, resrange=(1,340))
+    ax0.set_xticks([])
+    ax0.set_xticklabels([])
+    
+    ax = plot_residue_protection_factors([pof], gridspec=gs, fig=fig, return_ax=True, resnum_skip=xtickspacing, resrange=(1,len(pof.sequence)))
+    
+    xt = [1]
+    for i in range(xtickspacing, len(pof.sequence), xtickspacing):
+        xt.append(i)
+    
+    for i in xt:
+        ax[i-1].set_xticks([0])
+        ax[i-1].set_xticklabels([str(i)],fontsize=8)
 
     set_logpf_ytick_params(ax[0])
 
-    plt.savefig(outfile, dpi=dpi)
-    
+    plt.savefig(outfile, dpi=dpi, transparent=True)
+    return non_nan_peptide_chis
 
 def plot_overlap_and_information(state, protection_factors=None, sectors=True, outfile=None, dpi=300, show=False, figwidth_scale=1.0):
     # Given these datasets and protection factors, plot a nice figure with peptide overlap on top and
@@ -861,7 +875,7 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
             if nd%resnum_label_skip == 0:
                 ax[n].set_title(str(nd), fontsize=12)
                 ax[n].set_xticks([0]) 
-                ax[n].xaxis.set_ticks_position("top")
+                #ax[n].xaxis.set_ticks_position("top")
                 ax[n].plot([0,0],[x[0]-0.2,x[-1]+0.2], color="black", lw=0.5)
             
             # Calculate bits of information
@@ -1187,9 +1201,10 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
             ax[n].set_xticks([]) 
 
             if nd%resnum_label_skip == 0 or nd==1:
-                ax[n].set_title(str(nd), fontsize=10)
-                ax[n].set_xticks([]) 
-                ax[n].xaxis.set_ticks_position("top")
+                #ax[n].set_title(str(nd), fontsize=10)
+                ax[n].set_xticks([0]) 
+                ax[n].set_xticklabels([str(nd)], fontsize=8) 
+                ax[n].xaxis.set_ticks_position("bottom")
                 ax[n].plot([0,0],[x[0]-0.2,x[-1]+0.2], color="black", lw=0.5)
             
             # Calculate bits of information
@@ -1220,7 +1235,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
                 #ax[n].fill_betweenx(x,0,-arr,facecolor=colors[i],alpha=0.5, lw=0)  
 
                 #ax[n].set_xticks([str(nd)])       
-            ax[n].tick_params(axis='x', which='major', labelsize=0, color="grey")
+            #ax[n].tick_params(axis='x', which='major', labelsize=0, color="grey")
             
             ax[n].set_frame_on(False)
 
