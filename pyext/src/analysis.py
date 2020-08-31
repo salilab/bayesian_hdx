@@ -186,7 +186,7 @@ class Convergence(object):
         cvs=[]
         percents=[]
 
-        f1=open("%s.ChiSquare_Grid_Stats.txt" % "Test", 'w+')
+        f1=open("%s.ChiSquare_Grid_Stats.txt" % "Test", 'w')
         f1.write("Threshold, Pvalue, CramersV, Pct_Ensemble_Explained\n")
         bsms1, bsms2 = self.get_models(self.num_gsm)
 
@@ -932,10 +932,13 @@ class OutputAnalysis(object):
         # return a list of psrf values for all residues
         psrf = numpy.zeros(n_resis)
         for i in range(n_resis):
-            psrf[i] = math.sqrt(V_hat[i]/win_chain_var[i])
-            resi_indices = numpy.array([m[i] for m in p_models])
-            var = resi_indices.var()
-            x = resi_indices - resi_indices.mean()
+            if win_chain_var[i] == 0:
+                psrf[i] = 0.0
+            else:
+                psrf[i] = math.sqrt(V_hat[i]/win_chain_var[i])
+            #resi_indices = numpy.array([m[i] for m in p_models])
+            #var = resi_indices.var()
+            #x = resi_indices - resi_indices.mean()
             #r = numpy.correlate(x, x, model='full')[-n:]
 
         # Just return the PRSF for now.
