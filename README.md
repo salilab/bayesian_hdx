@@ -1,5 +1,5 @@
-[![Build Status](https://github.com/salilab/bayesian_hdx/workflows/build/badge.svg?branch=master)](https://github.com/salilab/bayesian_hdx/actions?query=workflow%3Abuild)
-[![codecov](https://codecov.io/gh/salilab/bayesian_hdx/branch/master/graph/badge.svg)](https://codecov.io/gh/salilab/bayesian_hdx)
+[![Build Status](https://github.com/salilab/bayesian_hdx/workflows/build/badge.svg?branch=main)](https://github.com/salilab/bayesian_hdx/actions?query=workflow%3Abuild)
+[![codecov](https://codecov.io/gh/salilab/bayesian_hdx/branch/main/graph/badge.svg)](https://codecov.io/gh/salilab/bayesian_hdx)
 
 # bayesian_hdx
 Bayesian Analysis of HDX-MS Data. 
