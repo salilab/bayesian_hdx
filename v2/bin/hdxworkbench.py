@@ -7,12 +7,15 @@ import sampling
 import system
 import model
 import hxio
+import analysis
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Bayesian Analysis of HDX-MS Data.\nThis script process a CVS datafile exported by HDXWorkbench')
 
     parser.add_argument('-w', help='HDXWorkbench CSV file', required=True)
+    parser.add_argument('--mol_name', help='Molecule name',
+                        required=True)
     parser.add_argument('-o','--outputdir', help='Output directory.', required=True)
     parser.add_argument('--init', help='How to initialize - either "random" or "enumerate". '
                                        'Enumerate is slower but sampling will converge faster. '
@@ -22,23 +25,34 @@ if __name__ == '__main__':
     parser.add_argument('--num_exp_bins', help='Number of log(kex) values for sampling. 20 is generally sufficient. '
                                                'Default: 20',
                         default=20,
+                        type=int,
                         required=False)
     parser.add_argument('--offset', help='Offset between fragment start/end values and FASTA sequence. '
                                          'Default: 0',
-                        default=0, required=False)
+                        default=0,
+                        type=float,
+                        required=False)
     parser.add_argument('--sigma0', help='Estimate for experimental error in %%D Units. '
                                          'Default: 5',
-                        default=5, required=False)
+                        default=5,
+                        type=float,
+                        required=False)
     parser.add_argument('--annealing_steps', help='Steps per temperature in annealing - 100-200 sufficient. '
                                                   'Default: 20',
-                        default=20, required=False)
+                        default=20,
+                        type=int,
+                        required=False)
     parser.add_argument('--nsteps', help='Equilibrium steps. 5000 to 10000. '
                                          'Default: 1000',
-                        default=1000, required=False)
+                        default=1000,
+                        type=int,
+                        required=False)
 
     parser.add_argument('--saturation', help='Deuterium saturation in experiment. '
                                          'Default: 1.0',
-                        default=1.0, required=False)
+                        default=1.0,
+                        type=float,
+                        required=False)
 
     args = parser.parse_args()
     if not os.path.exists(args.w):
@@ -74,7 +88,7 @@ if __name__ == '__main__':
 
     # Initialize model
     sys = system.System(output_dir=args.outputdir, noclobber=False)
-    mol = sys.add_macromolecule(inseq, "VDR", initialize_apo=False)
+    mol = sys.add_macromolecule(inseq, args.mol_name, initialize_apo=False)
 
     # Import data
     datasets = hxio.import_HDXWorkbench(args.w,  # Workbench input file
@@ -99,18 +113,6 @@ if __name__ == '__main__':
 
     # First, run a short minimization step
     sampler.run(50, 0.0001, write=True)
-
-    '''
-    for dataset in datasets:
-      for pep in dataset.get_peptides():
-        for tp in pep.get_timepoints():
-            #try:
-            i = tp.get_replicates()[0]
-            rep_score = -1*math.log(state.scoring_function.replicate_score(tp.get_model_deuteration()/pep.num_observable_amides*100, tp.get_replicates()[0].deut, tp.get_sigma()))
-            print pep.sequence, tp.time, tp.get_model_deuteration()/pep.num_observable_amides*100, tp.get_replicates()[0].deut, tp.get_score(), rep_score, "|", tp.get_sigma(), -1*math.log(state.scoring_function.experimental_sigma_prior(tp.get_sigma(), sigma0))
-            #except:
-            #    pass
-    '''
     # Slowly cool system
     sampler.run(args.annealing_steps, 3)
 
@@ -124,3 +126,33 @@ if __name__ == '__main__':
 
     # This temperature tends to sit around 15% MC acceptance rate, which seems to be good.
     sampler.run(args.nsteps, 1, write=True)
+
+    files = [f for dr, ds, files in os.walk(args.outputdir) for f in files if f.endswith('.dat')]
+    if len(files) >= 2:
+        os.chdir(args.outputdir)
+        oa = analysis.OutputAnalysis([files[0]])
+        oa1 = analysis.OutputAnalysis([files[1]])
+
+        conv = oa.get_convergence(20)
+        conv1 = oa1.get_convergence(20)
+
+        distmat = conv.get_distance_matrix(num_models=20)
+        distmat1 = conv1.get_distance_matrix(num_models=20)
+
+        cutoff_list = conv.get_cutoffs_list(1.0)
+        cutoff_list1 = conv1.get_cutoffs_list(1.0)
+
+        pvals, cvs, percents = conv.get_clusters(cutoff_list)
+        pvals1, cvs1, percents1 = conv1.get_clusters(cutoff_list1)
+
+        sampling_precision,pval_converged,cramersv_converged,percent_converged = conv.get_sampling_precision(cutoff_list, pvals, cvs, percents)
+        sampling_precision1,pval_converged1,cramersv_converged1,percent_converged1 = conv1.get_sampling_precision(cutoff_list1, pvals1, cvs1, percents1)
+
+        pofs = conv.cluster_at_threshold_and_return_pofs(sampling_precision)
+        pofs1 = conv1.cluster_at_threshold_and_return_pofs(sampling_precision1)
+
+        dhdx = analysis.DeltaHDX(pofs[0], pofs1[0])
+        diff, Z, mean1, mean2, sd1, sd2 = dhdx.calculate_dhdx()
+        dhdx.write_dhdx_file()
+
+
