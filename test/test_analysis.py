@@ -2,13 +2,13 @@
 Test objects and functions in analysis.py
 '''
 from __future__ import print_function
-import utils
 import unittest
 import os
 
 input_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'input'))
 
 print(input_dir)
+
 
 class TestParseOutputFile(unittest.TestCase):
     '''
