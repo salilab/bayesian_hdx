@@ -17,6 +17,8 @@ if __name__ == '__main__':
     parser.add_argument('--mol_name', help='Molecule name',
                         required=True)
     parser.add_argument('-o','--outputdir', help='Output directory.', required=True)
+    parser.add_argument('--control', help='Control sample name', required=True)
+    parser.add_argument('--ligand', help='Ligand sample name', required=True)
     parser.add_argument('--init', help='How to initialize - either "random" or "enumerate". '
                                        'Enumerate is slower but sampling will converge faster. '
                                        'Default: enumerate',
@@ -128,31 +130,37 @@ if __name__ == '__main__':
     sampler.run(args.nsteps, 1, write=True)
 
     files = [f for dr, ds, files in os.walk(args.outputdir) for f in files if f.endswith('.dat')]
-    if len(files) >= 2:
-        os.chdir(args.outputdir)
-        oa = analysis.OutputAnalysis([files[0]])
-        oa1 = analysis.OutputAnalysis([files[1]])
+    control_files = []
+    ligand_files = []
+    for f in files:
+        if args.control in f:
+            control_files.append(f)
+        elif args.ligand in f:
+            ligand_files.append(f)
+    os.chdir(args.outputdir)
+    oa = analysis.OutputAnalysis(ligand_files)
+    oa1 = analysis.OutputAnalysis(control_files)
 
-        conv = oa.get_convergence(20)
-        conv1 = oa1.get_convergence(20)
+    conv = oa.get_convergence(20)
+    conv1 = oa1.get_convergence(20)
 
-        distmat = conv.get_distance_matrix(num_models=20)
-        distmat1 = conv1.get_distance_matrix(num_models=20)
+    distmat = conv.get_distance_matrix(num_models=20)
+    distmat1 = conv1.get_distance_matrix(num_models=20)
 
-        cutoff_list = conv.get_cutoffs_list(1.0)
-        cutoff_list1 = conv1.get_cutoffs_list(1.0)
+    cutoff_list = conv.get_cutoffs_list(1.0)
+    cutoff_list1 = conv1.get_cutoffs_list(1.0)
 
-        pvals, cvs, percents = conv.get_clusters(cutoff_list)
-        pvals1, cvs1, percents1 = conv1.get_clusters(cutoff_list1)
+    pvals, cvs, percents = conv.get_clusters(cutoff_list)
+    pvals1, cvs1, percents1 = conv1.get_clusters(cutoff_list1)
 
-        sampling_precision,pval_converged,cramersv_converged,percent_converged = conv.get_sampling_precision(cutoff_list, pvals, cvs, percents)
-        sampling_precision1,pval_converged1,cramersv_converged1,percent_converged1 = conv1.get_sampling_precision(cutoff_list1, pvals1, cvs1, percents1)
+    sampling_precision,pval_converged,cramersv_converged,percent_converged = conv.get_sampling_precision(cutoff_list, pvals, cvs, percents)
+    sampling_precision1,pval_converged1,cramersv_converged1,percent_converged1 = conv1.get_sampling_precision(cutoff_list1, pvals1, cvs1, percents1)
 
-        pofs = conv.cluster_at_threshold_and_return_pofs(sampling_precision)
-        pofs1 = conv1.cluster_at_threshold_and_return_pofs(sampling_precision1)
+    pofs = conv.cluster_at_threshold_and_return_pofs(sampling_precision)
+    pofs1 = conv1.cluster_at_threshold_and_return_pofs(sampling_precision1)
 
-        dhdx = analysis.DeltaHDX(pofs[0], pofs1[0])
-        diff, Z, mean1, mean2, sd1, sd2 = dhdx.calculate_dhdx()
-        dhdx.write_dhdx_file()
+    dhdx = analysis.DeltaHDX(pofs[0], pofs1[0])
+    diff, Z, mean1, mean2, sd1, sd2 = dhdx.calculate_dhdx()
+    dhdx.write_dhdx_file()
 
 
