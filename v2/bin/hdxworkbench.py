@@ -138,8 +138,8 @@ if __name__ == '__main__':
         elif args.ligand in f:
             ligand_files.append(f)
     os.chdir(args.outputdir)
-    oa = analysis.OutputAnalysis(ligand_files)
-    oa1 = analysis.OutputAnalysis(control_files)
+    oa = analysis.OutputAnalysis(control_files)
+    oa1 = analysis.OutputAnalysis(ligand_files)
 
     conv = oa.get_convergence(20)
     conv1 = oa1.get_convergence(20)
