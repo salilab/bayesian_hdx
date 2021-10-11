@@ -8,6 +8,29 @@ import system
 import model
 import hxio
 import analysis
+from operator import itemgetter
+
+
+def get_best_scoring_models(o, minsize=100):
+    new_pof = analysis.deepcopy(o.pof1)
+    pof_all = analysis.concatenate_pofs(new_pof, o.pof2)
+    smt = pof_all.get_models(return_pf=False)
+    smt.sort(key=itemgetter(0))
+    sum2=0.0
+    sum1=0.0
+    finali=minsize #HB store the final i; default is the minimum number of points to use, obviously!
+    minstderr2=1.0E+34 #HB 23-May-2018. Can never be negative, so a dumb value to initialize for debugging purposes.
+    for i in range(0,len(smt),1):
+        sum1+=smt[i][0]
+        sum2+=smt[i][0]*smt[i][0]
+        avg=sum1/(i+1)
+        var=(sum2/(i+1)) - (avg * avg)
+        stderr2=var/(i+1) #square of stderr, monotonic with stderr and faster to calculate
+        if (i >= minsize) and (stderr2 < minstderr2):
+            finali=i+1 #HB this is the i'th entry in smt, which is the current minimum in the stderr
+            minstderr2=stderr2 #HB 23-May-2018
+    return (finali, minstderr2)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -141,11 +164,16 @@ if __name__ == '__main__':
     oa = analysis.OutputAnalysis(control_files)
     oa1 = analysis.OutputAnalysis(ligand_files)
 
-    conv = oa.get_convergence(20)
-    conv1 = oa1.get_convergence(20)
+    num_models, minstderr = get_best_scoring_models(oa, 100)
+    num_models1, minstderr1 = get_best_scoring_models(oa1, 100)
+    print('Control best num of models {} with stderr: {}'.format(num_models, minstderr))
+    print('Ligand best num of models {} with stderr: {}'.format(num_models1, minstderr1))
 
-    distmat = conv.get_distance_matrix(num_models=20)
-    distmat1 = conv1.get_distance_matrix(num_models=20)
+    conv = oa.get_convergence(num_models)
+    conv1 = oa1.get_convergence(num_models1)
+
+    distmat = conv.get_distance_matrix(num_models=num_models)
+    distmat1 = conv1.get_distance_matrix(num_models=num_models1)
 
     cutoff_list = conv.get_cutoffs_list(1.0)
     cutoff_list1 = conv1.get_cutoffs_list(1.0)
