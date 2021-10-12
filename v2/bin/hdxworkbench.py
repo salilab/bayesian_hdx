@@ -153,6 +153,7 @@ if __name__ == '__main__':
     sampler.run(args.nsteps, 1, write=True)
 
     files = [f for dr, ds, files in os.walk(args.outputdir) for f in files if f.endswith('.dat')]
+
     control_files = []
     ligand_files = []
     for f in files:
@@ -190,5 +191,3 @@ if __name__ == '__main__':
     dhdx = analysis.DeltaHDX(pofs[0], pofs1[0])
     diff, Z, mean1, mean2, sd1, sd2 = dhdx.calculate_dhdx()
     dhdx.write_dhdx_file()
-
-

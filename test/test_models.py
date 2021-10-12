@@ -4,7 +4,6 @@ Test the input of various file types
 from __future__ import print_function
 import utils
 import unittest
-import numpy
 import os
 from copy import deepcopy
 
@@ -14,12 +13,11 @@ utils.set_search_paths(TOPDIR)
 import model
 import system
 import data
-#import tools
 
 
 def initialize_system_and_dataset():
     sequence = "MEGAMAN"
-    sys = system.System()       
+    sys = system.System()
     mol = sys.add_macromolecule(sequence, "test_molecule")
     d = data.Dataset("Test", data.Conditions(), sequence=sequence)
     d.create_peptide("MEGA", start_residue=1)
@@ -37,7 +35,6 @@ def initialize_system_and_dataset():
 class TestResidueGridModel(unittest.TestCase):
 
     def test_change_residue(self):
-
         state = initialize_system_and_dataset()
         rgm = model.ResidueGridModel(state, grid_size=10)
 
@@ -52,17 +49,16 @@ class TestResidueGridModel(unittest.TestCase):
 
         rgm.change_residue(5, 4)
 
-        print("MODEL", rgm.get_model_residue(5), rgm.model[4:6], rgm.model_protection_factors[4:6])
+        print("MODEL", rgm.get_model_residue(5), rgm.model[4:6],
+              rgm.model_protection_factors[4:6])
         print("REG_COPY", mod[4:6], pfs[4:6])
         print("DEEP_COPY", dc_model[4:6], dc_model_pf[4:6])
 
-
     def test_residue_grid_model(self):
-
         state = initialize_system_and_dataset()
         rgm = model.ResidueGridModel(state, grid_size=10)
 
-        pf_grids = rgm.calculate_protection_factor_grids(threshold = 0.01)
+        pf_grids = rgm.calculate_protection_factor_grids(threshold=0.01)
 
         mod = rgm.generate_model(random=False, value=2, initialize=True)
         self.assertEqual(len(state.get_sequence()), len(mod))
@@ -74,10 +70,7 @@ class TestResidueGridModel(unittest.TestCase):
         for i in range(len(mod2)):
             self.assertEqual(mod2[i], rgm.model[i])
 
-        #print(rgm.grid_size, rgm.get_sampling_grid(), pf_grids[0])
-
-
-
+        # print(rgm.grid_size, rgm.get_sampling_grid(), pf_grids[0])
 
 
 if __name__ == '__main__':

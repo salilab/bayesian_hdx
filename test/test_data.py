@@ -12,15 +12,13 @@ utils.set_search_paths(TOPDIR)
 
 import system
 import data
-import tools
-import hxio
 
 
 class TestDataset(unittest.TestCase):
 
     def initialize_system(self):
         sys = system.System()
-        mol = sys.add_macromolecule(name="Temp", sequence = "LALALAND")
+        mol = sys.add_macromolecule(name="Temp", sequence="LALALAND")
         return mol
 
     def initialize_dataset(self):
@@ -44,7 +42,8 @@ class TestDataset(unittest.TestCase):
 
         rates = d.calculate_intrinsic_rates()
 
-        std_rates = [numpy.nan, 2.03190342, 0.04565069, 0.41190342, 0.04565069, 0.41190342, 1.11190342, -0.75672096]
+        std_rates = [numpy.nan, 2.03190342, 0.04565069, 0.41190342,
+                     0.04565069, 0.41190342, 1.11190342, -0.75672096]
 
         for i in range(len(rates)):
             if numpy.isfinite(rates[i]):
@@ -74,12 +73,14 @@ class TestDataset(unittest.TestCase):
 
         threshold = 0.01
         bounds = d.calculate_observable_rate_bounds(threshold=threshold)
-        set_bounds = (numpy.log10(-numpy.log(1-threshold)/1000), numpy.log10(-numpy.log(threshold)/10))
+        set_bounds = (numpy.log10(-numpy.log(1-threshold)/1000),
+                      numpy.log10(-numpy.log(threshold)/10))
         self.assertAlmostEqual(bounds, set_bounds)
 
         threshold = 0.05
         bounds = d.calculate_observable_rate_bounds(threshold=threshold)
-        set_bounds = (numpy.log10(-numpy.log(1-threshold)/1000), numpy.log10(-numpy.log(threshold)/10))
+        set_bounds = (numpy.log10(-numpy.log(1-threshold)/1000),
+                      numpy.log10(-numpy.log(threshold)/10))
         self.assertAlmostEqual(bounds, set_bounds)
 
         obs_pfs = d.calculate_observable_protection_factors()
@@ -92,37 +93,24 @@ class TestDataset(unittest.TestCase):
         pass
 
 
-
-
 class TestPeptides(unittest.TestCase):
-
 
     def initialize(self):
         c = data.Conditions()
         d = data.Dataset("Test", c, sequence="EWESEEESSEFF")
         return d
 
-
     def test_adding_timepoints(self):
-
         d = self.initialize()
         p = d.create_peptide("ESEEE", start_residue=3)
         p.add_timepoints([10, 100, 1000])
 
         self.assertEqual(len(p.get_timepoints()), 3)
 
-
         # Test setting all tp in this peptide to the same sigma
         p.set_timepoint_sigmas(1.5)
         for t in p.get_timepoints():
             self.assertEqual(1.5, t.get_sigma())
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
