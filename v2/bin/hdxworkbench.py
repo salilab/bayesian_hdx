@@ -20,6 +20,7 @@ def get_best_scoring_models(o, minsize=100):
     sum1=0.0
     finali=minsize #HB store the final i; default is the minimum number of points to use, obviously!
     minstderr2=1.0E+34 #HB 23-May-2018. Can never be negative, so a dumb value to initialize for debugging purposes.
+    print('Processing {} models'.format(len(smt)))
     for i in range(0,len(smt),1):
         sum1+=smt[i][0]
         sum2+=smt[i][0]*smt[i][0]
@@ -27,6 +28,7 @@ def get_best_scoring_models(o, minsize=100):
         var=(sum2/(i+1)) - (avg * avg)
         stderr2=var/(i+1) #square of stderr, monotonic with stderr and faster to calculate
         if (i >= minsize) and (stderr2 < minstderr2):
+            # print('Adjusting stderr: {}'.format(stderr2))
             finali=i+1 #HB this is the i'th entry in smt, which is the current minimum in the stderr
             minstderr2=stderr2 #HB 23-May-2018
     return (finali, minstderr2)
@@ -137,7 +139,7 @@ if __name__ == '__main__':
     sampler = sampling.MCSampler(sys, sigma_sample_level="timepoint")
 
     # First, run a short minimization step
-    sampler.run(50, 0.0001, write=True)
+    sampler.run(100, 0.0001, write=True)
     # Slowly cool system
     sampler.run(args.annealing_steps, 3)
 
@@ -157,10 +159,11 @@ if __name__ == '__main__':
     ligand_files = []
     for f in files:
         if args.control in f:
-            control_files.append(f)
+            control_files.append(os.path.join(args.outputdir, f))
         elif args.ligand in f:
-            ligand_files.append(f)
-    os.chdir(args.outputdir)
+            ligand_files.append(os.path.join(args.outputdir, f))
+    print('Using control files: {}'.format(control_files))
+    print('Using ligand files: {}'.format(ligand_files))
     oa = analysis.OutputAnalysis(control_files)
     oa1 = analysis.OutputAnalysis(ligand_files)
 
@@ -189,6 +192,6 @@ if __name__ == '__main__':
 
     dhdx = analysis.DeltaHDX(pofs[0], pofs1[0])
     diff, Z, mean1, mean2, sd1, sd2 = dhdx.calculate_dhdx()
-    dhdx.write_dhdx_file()
+    dhdx.write_dhdx_file(prefix='{}/'.format(args.outputdir))
 
 

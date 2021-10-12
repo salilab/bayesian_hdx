@@ -2,6 +2,7 @@
    Analysis functions for HDX simulations
 """
 from __future__ import print_function
+from __future__ import division
 import hxio
 #from scipy.stats import cumfreq
 #from scipy.stats import chi2_contingency
@@ -59,8 +60,8 @@ class Convergence(object):
             mod2 = [g[1] for g in m2]
         else:
             mod1 = [g[1] for g in m1[0:num_gsm]]
-            mod2 = [g[1] for g in m2[0:num_gsm]]            
-        return mod1, mod2         
+            mod2 = [g[1] for g in m2[0:num_gsm]]
+        return mod1, mod2
 
     def total_score_pvalue_and_cohensd(self, num_gsm="all"):
 
@@ -79,7 +80,7 @@ class Convergence(object):
         return pvalue, cohens_d
 
     def residue_pvalue_and_cohensd(self, num_gsm="all"):
-        
+
         bsm1, bsm2 = self.get_models(num_gsm)
         output=[]
 
@@ -132,12 +133,12 @@ class Convergence(object):
             neighbors.append([count]) # model is a neighbor of itself
 
         for i in range(num_models-1):
-            for j in range(i+1,num_models): 
+            for j in range(i+1,num_models):
 
                 if distmat[i][j]<=threshold:
                     neighbors[i].append(j)
                     neighbors[j].append(i)
-                #print(i,j,distmat[i][j],len(neighbors[i]),len(neighbors[j]))   
+                #print(i,j,distmat[i][j],len(neighbors[i]),len(neighbors[j]))
 
 
         # 2). Get the weightiest cluster, and iterate
@@ -159,16 +160,16 @@ class Convergence(object):
             for eachu in unclustered:  # if multiple clusters have same maxweight this tie is broken arbitrarily! 
                 if len(neighbors[eachu])>max_neighbors:
                     max_neighbors=len(neighbors[eachu])
-                    currcenter=eachu   
-       
+                    currcenter=eachu
+
             #form a new cluster with u and its neighbors
             cluster_centers.append(currcenter)
-            cluster_members.append([n for n in neighbors[currcenter]]) 
+            cluster_members.append([n for n in neighbors[currcenter]])
 
-            #update neighbors 
+            #update neighbors
             for n in neighbors[currcenter]:
                 #removes the neighbor from the pool
-                unclustered.remove(n) #first occurence of n is removed. 
+                unclustered.remove(n) #first occurence of n is removed.
                 boolUnclustered[n]=False # clustered
 
             for n in neighbors[currcenter]:
@@ -176,7 +177,7 @@ class Convergence(object):
                     if not boolUnclustered[unn]:
                         continue
                     neighbors[unn].remove(n)
-        
+
         return cluster_centers, cluster_members
 
 
@@ -202,7 +203,7 @@ class Convergence(object):
             pvals.append(pval)
             cvs.append(cramersv)
             percents.append(percent_explained)
-            
+
             f1.write(str(c)+", "+str(pval)+", "+str(cramersv)+", "+str(percent_explained)+"\n")
 
         return pvals, cvs, percents
@@ -238,7 +239,7 @@ class Convergence(object):
 
         reduced_ctable=[]
         retained_clusters=[]
-        
+
         for i in range(num_clusters):
             if full_ctable[i][0]<=10.0 or full_ctable[i][1]<=10.0:
                 #if full_ctable[i][0]<=0.10*numModelsRun1 and full_ctable[i][1] <= 0.10*numModelsRun2:
@@ -252,14 +253,14 @@ class Convergence(object):
 
         if len(contingency_table)==0:
             return 0.0,1.0
-        
+
         ct = numpy.transpose(contingency_table)
         [chisquare,pvalue,dof,expected]=scipy.stats.chi2_contingency(ct)
         if dof==0.0:
             cramersv=0.0
         else:
             cramersv=math.sqrt(chisquare/float(total_num_models))
-            
+
         return(pvalue,cramersv)
 
     def percent_ensemble_explained(self, ctable,total_num_models):
@@ -419,15 +420,15 @@ class ParseOutputFile(object):
         '''
         f = open(self.output_file, "r")
         for line in f.readlines():
-            
+
             # > means model data (so header is over.)
             if line[0]==">":
                 break
-            
+
             # #-symbol means datasets
             elif line[0:2]=="# ":
                 self.datafiles.append( (line[2:].split("|")[0].strip(), float(line[2:].split("|")[2].strip())) )
-            
+
             # @-symbol means sectors
             elif line[0:2]=="@ ":
                 for s_string in line[2:].strip().split("|"):
@@ -498,7 +499,7 @@ class ParseOutputFile(object):
         f = open(self.output_file, "r")
         models = []
         # Cycle over all lines
-        for line in f.readlines():       
+        for line in f.readlines():
             if line[0]==">":
                 score = float(line.split("|")[1].strip())
 
@@ -509,7 +510,7 @@ class ParseOutputFile(object):
                 if return_pf:
                     ml1 = model_list
                     model_list = self.models_to_protection_factors(model_list)
-                models.append((score, model_list)) 
+                models.append((score, model_list))
 
         self.models = models
 
@@ -704,12 +705,12 @@ class OutputAnalysis(object):
         random.shuffle(n_output_files)
 
         pof1 = ParseOutputFile(self.output_files[n_output_files[0]])
-        for i in n_output_files[1:int(len(n_output_files)/2)]:
+        for i in n_output_files[1:len(n_output_files)//2]:
             new_pof = ParseOutputFile(self.output_files[n_output_files[i]])
             concatenate_pofs(pof1, new_pof)
 
         pof2 = ParseOutputFile(self.output_files[n_output_files[int(len(n_output_files)/2)]])
-        for i in n_output_files[int(len(n_output_files)/2)+1:]:
+        for i in n_output_files[len(n_output_files)//2+1:]:
             new_pof = ParseOutputFile(self.output_files[n_output_files[i]])
             concatenate_pofs(pof2, new_pof)
 
@@ -830,7 +831,7 @@ def get_residue_rate_probabilities(modelfile, scorefile, sectors, seq, grid, num
 
     if hasattr(grid, '__iter__'):
         grid=len(grid)
-    
+
     best_models, best_scores=get_best_scoring_models(modelfile, scorefile, num_models, write_file=False)
 
     best_models=numpy.array(best_models)
@@ -882,9 +883,9 @@ def get_cdf(exp_models):
     A=numpy.array(exp_models)
     y=numpy.linspace(1./len(exp_models),1,len(exp_models))
     #print(len(exp_models[0]))
-    for i in range(len(exp_models[0])): 
-        counts, edges = numpy.histogram(A[:,i], len(A), range=(-6,0), density=False) 
-        #print i,A[:,i],counts,numpy.cumsum(counts*1.0/len(A)) 
+    for i in range(len(exp_models[0])):
+        counts, edges = numpy.histogram(A[:,i], len(A), range=(-6,0), density=False)
+        #print i,A[:,i],counts,numpy.cumsum(counts*1.0/len(A))
         exp_model_edf[:,i]=numpy.cumsum(counts*1.0/len(A))
     return exp_model_edf
 
@@ -896,7 +897,7 @@ def get_chisq(exp_models1, exp_models2, nbins):
     #print(len(exp_models1[0]))
     for i in range(269,len(exp_models1[0])):
         meanA = numpy.mean(A[:,i])
-        ssd = numpy.std(A[:,i])**2 + numpy.std(B[:,i])**2 
+        ssd = numpy.std(A[:,i])**2 + numpy.std(B[:,i])**2
         sstdev = numpy.sqrt( ssd / 5000 )
         meanB = numpy.mean(B[:,i])
         t = 1.96
