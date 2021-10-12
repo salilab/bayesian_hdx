@@ -709,7 +709,7 @@ class OutputAnalysis(object):
             new_pof = ParseOutputFile(self.output_files[n_output_files[i]])
             concatenate_pofs(pof1, new_pof)
 
-        pof2 = ParseOutputFile(self.output_files[n_output_files[int(len(n_output_files)/2)]])
+        pof2 = ParseOutputFile(self.output_files[n_output_files[len(n_output_files)//2]])
         for i in n_output_files[len(n_output_files)//2+1:]:
             new_pof = ParseOutputFile(self.output_files[n_output_files[i]])
             concatenate_pofs(pof2, new_pof)
