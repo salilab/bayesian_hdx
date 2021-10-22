@@ -5,21 +5,19 @@ from __future__ import print_function
 import utils
 import os
 import unittest
-import numpy
 
 TOPDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 utils.set_search_paths(TOPDIR)
 
 import system
 import data
-import tools
-import hxio
 import model
 
 
 def initialize_system():
-    sys = system.System()       
+    sys = system.System()
     return sys.add_macromolecule("MEGAMAN", "test_molecule")
+
 
 def initialize_dataset():
     d = data.Dataset("Test", data.Conditions(), sequence="MEGAMAN")
@@ -29,11 +27,12 @@ def initialize_dataset():
     d.create_peptide("AMAN", start_residue=4)
     return d
 
+
 class TestSystem(unittest.TestCase):
 
     def test_initialize(self):
         sys = system.System()
-        
+
         self.assertEqual(len(sys.get_macromolecules()), 0)
 
         sys.add_macromolecule("MEGAMAN", "test_molecule")
@@ -43,7 +42,6 @@ class TestSystem(unittest.TestCase):
 class TestMacromolecule(unittest.TestCase):
 
     def test_macromolecule_functions(self):
-
         mol = initialize_system()
 
         self.assertEqual(mol.get_sequence(), "MEGAMAN")
@@ -55,7 +53,6 @@ class TestMacromolecule(unittest.TestCase):
 class TestState(unittest.TestCase):
 
     def test_state_functions(self):
-
         mol = initialize_system()
 
         d = initialize_dataset()
@@ -70,25 +67,18 @@ class TestState(unittest.TestCase):
         # test calculating sectors
         sectors = state.calculate_sectors()
         self.assertEqual(len(sectors), 4)
-        self.assertEqual(state.sector_dictionary[0], set([3,4]))
+        self.assertEqual(state.sector_dictionary[0], set([3, 4]))
         self.assertEqual(len(state.sector_dictionary), 4)
 
         pep = d.create_peptide("EGAM", start_residue=2)
         sectors = state.calculate_sectors()
-        self.assertEqual(len(sectors), 5)       
+        self.assertEqual(len(sectors), 5)
         self.assertEqual(state.sector_dictionary[0], set([3]))
 
-        pep.add_timepoints([10,100])
+        pep.add_timepoints([10, 100])
 
         state.set_output_model(model.ResidueGridModel(state, 10))
         state.initialize()
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':

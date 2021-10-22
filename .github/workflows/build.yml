@@ -20,8 +20,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install pytest-flake8 pytest-cov matplotlib scipy
+        pip install pytest-flake8 pytest-cov matplotlib scipy flake8
     - name: Test
       run: |
         py.test --cov=. --cov-branch --cov-report=xml -v test
+        flake8 pyext/src/ --extend-ignore=F821
+        flake8 test/ --extend-ignore=F841,E402
     - uses: codecov/codecov-action@v1

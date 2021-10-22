@@ -193,5 +193,4 @@ if __name__ == '__main__':
     dhdx = analysis.DeltaHDX(pofs[0], pofs1[0])
     diff, Z, mean1, mean2, sd1, sd2 = dhdx.calculate_dhdx()
     dhdx.write_dhdx_file(prefix='{}/'.format(args.outputdir))
-
-
+    
