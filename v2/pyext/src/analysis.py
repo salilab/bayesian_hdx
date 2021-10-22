@@ -709,7 +709,7 @@ class OutputAnalysis(object):
             new_pof = ParseOutputFile(self.output_files[n_output_files[i]])
             concatenate_pofs(pof1, new_pof)
 
-        pof2 = ParseOutputFile(self.output_files[n_output_files[int(len(n_output_files)/2)]])
+        pof2 = ParseOutputFile(self.output_files[n_output_files[len(n_output_files)//2]])
         for i in n_output_files[len(n_output_files)//2+1:]:
             new_pof = ParseOutputFile(self.output_files[n_output_files[i]])
             concatenate_pofs(pof2, new_pof)
@@ -774,19 +774,20 @@ def get_best_scoring_models(modelfile, scorefile, num_best_models=100, prefix=No
     top_models=[]
     top_score_indices=[]
     top_scores=[]
-    infile=open(scorefile, "r")
-    for line in infile:
-        scores.append(float(line.split()[0].strip()))
-    infile=open(modelfile, "r")
-
-    for line in infile:
-        models.append(line)
+    with open(scorefile, "r") as infile:
+        for line in infile:
+            scores.append(float(line.split()[0].strip()))
+    with open(modelfile, "r") as infile:
+        for line in infile:
+            models.append(line)
 
     for i in range(num_best_models):
         top_score_indices.append(scores.index(min(scores)))
         top_scores.append(min(scores))
         #print(scores, min(scores), scores.index(min(scores)), top_score_indices)
         scores[scores.index(min(scores))]=max(scores)+1
+        if i > len(scores): # To get as many models as in the scorefile
+            break
     if write_file:
         output_file=open(outfile, "w")
         return top_models, top_scores
