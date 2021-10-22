@@ -163,12 +163,6 @@ class OutputAnalysis(object):
         pass
 
 
-
-
-
-
-
-
 def get_best_scoring_models(modelfile, scorefile, num_best_models=100, prefix=None, write_file=True):
     #takes a model and score file and writes a new model file with the best X scoring models.
     #This new file can then be imported into an HDXModel class for analysis
@@ -179,7 +173,7 @@ def get_best_scoring_models(modelfile, scorefile, num_best_models=100, prefix=No
         outfile="./" + prefix + "_best_models.dat"
 
     # You have one chance to not overwrite your best models file
-    if os.path.isfile(outfile):
+    if write_file and os.path.isfile(outfile):
         print("WARNING: ", outfile, " exists, renamed to ", outfile, ".old")
         os.rename(outfile, outfile +".old")
 
@@ -188,26 +182,28 @@ def get_best_scoring_models(modelfile, scorefile, num_best_models=100, prefix=No
     top_models=[]
     top_score_indices=[]
     top_scores=[]
-    infile=open(scorefile, "r")
-    for line in infile:
-        scores.append(float(line.split()[0].strip()))
-    infile=open(modelfile, "r")
-
-    for line in infile:
-        models.append(line)
+    with open(scorefile, "r") as infile:
+        for line in infile:
+            scores.append(float(line.split()[0].strip()))
+    with open(modelfile, "r") as infile:
+        for line in infile:
+            models.append(line)
 
     for i in range(num_best_models):
         top_score_indices.append(scores.index(min(scores)))
         top_scores.append(min(scores))
         #print(scores, min(scores), scores.index(min(scores)), top_score_indices)
         scores[scores.index(min(scores))]=max(scores)+1
+        if i > len(scores): # To get as many models as in the scorefile
+            break
+    for i in top_score_indices:
+        top_models.append(list(map(int, models[int(i)].split()))) # map is not subscriptable from Python 3
     if write_file:
-        output_file=open(outfile, "w")
-        return top_models, top_scores
-    else:
-        for i in top_score_indices:
-            top_models.append(map(int, models[int(i)].split()) )
-        return top_models, top_scores
+        with open(outfile, "w") as fout:
+            for m in top_models:
+                fout.write(' '.join([str(e) for e in m]) + '\n')
+    return top_models, top_scores
+
 
 def sector_sort(sectors):
     # Given a list of sectors, sort them by residue number

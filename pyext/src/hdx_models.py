@@ -117,6 +117,7 @@ class MultiExponentialModel(object):
 
             frag_likelihood = 0
             frag_replicates = 0
+            tp_likelihood=0 # Crash if this is not included due to the use outside the loop
 
             for tp in f.timepoints:
 
@@ -521,7 +522,7 @@ class MultiExponentialModel(object):
             self.exp_models=[]
         for line in data:
             #print line
-            exp=map(int, line.split(' '))
+            exp=list(map(int, line.split(' '))) # map is not subscriptable from Python 3
             self.exp_models.append(exp)
             for f in frags:
                 #print f.seq
@@ -573,7 +574,7 @@ class MultiExponentialModel(object):
         if append=='False':
             self.exp_models=[]
         for line in data:
-            self.exp_models.append(map(int, line.split(' ')))
+            self.exp_models.append(list(map(int, line.split(' ')))) # map is not subscriptable from Python 3
 
     def calc_model_scores(self, frags=None, sig=1.0, error_model="gaussian"):
         if self.exp_models==[]:

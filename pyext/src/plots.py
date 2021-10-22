@@ -401,6 +401,116 @@ def plot_2state_fragment_avg_model_fits(state1, state2, sig, num_best_models=100
         plt.close()
         fig.clear()
 
+
+def plot_2state_fragment_avg_model_fits_num_model_per_state(state1, state2, sig, num_best_models=[100, 100],
+                                                            outdir=None, write_file=True, show_plot=False):
+    '''
+    For two states (apo and 1 ligand, e.g.), plot the fits to model for all fragments.
+    num_best_models is an array with 2 elements contaning the number of best models for each state
+    Output an individual plot for each fragment fit
+    '''
+
+    bsm, scores = analysis.get_best_scoring_models(state1.modelfile, state1.scorefile,
+                                                   num_best_models=num_best_models[0],
+                                                   prefix=state1.state_name, write_file=write_file)
+    state1.exp_model.import_model_deuteration_from_gridvals(state1.frags, bsm)
+    state1.exp_model.import_models_from_gridvals(bsm)
+
+    bsm, scores = analysis.get_best_scoring_models(state2.modelfile, state2.scorefile,
+                                                   num_best_models=num_best_models[1],
+                                                   prefix=state2.state_name, write_file=write_file)
+    state2.exp_model.import_model_deuteration_from_gridvals(state2.frags, bsm)
+    state2.exp_model.import_models_from_gridvals(bsm)
+
+    #takes a model and score file and writes a new model file with the best X scoring models.
+    #This new file can then be imported into an HDXModel class for analysis
+
+    if outdir is None:
+        outdir = "./output/fragment_fit-to-data_"+ str(state1.state_name) + "-" + str(state2.state_name) +"/"
+    else:
+        outdir = outdir + "fragment_fit-to-data_"+ str(state1.state_name) + "-" + str(state2.state_name) +"/"
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
+
+    for s1frag in state1.frags:
+        # Get the state2 frag.  If this is not there, it will return ""
+        s2frag = state2.get_frag(s1frag.seq, s1frag.start_res)
+
+        outfile=str(s1frag.seq) + "_model_fits.png"
+
+        fig=plt.figure()
+        ax=plt.gca()
+        x=[]
+        yavg=[]
+        yerror=[]
+        #print f.seq, x
+        s1avg=numpy.average(state1.exp_model.get_model_average()[s1frag.start_res+1:s1frag.end_res+1])
+
+        for t in s1frag.timepoints:
+            #print t.model
+            if t.get_model_avg() is not None and t.get_model_sd() is not None:
+                x.append(t.time)
+                xt=[int(t.time)]*len(t.replicates)
+                yt=[float(r.deut) for r in t.replicates]
+                plt.scatter(xt, yt, c='b')
+        chi=s1frag.get_chi_value(sig)
+
+        for t in s1frag.timepoints:
+            if t.get_model_avg() is not None and t.get_model_sd() is not None:
+                yavg.append(t.model_avg)
+                yerror.append(t.model_sd)
+                #print(s1frag.seq, t.time, t.model_avg, t.model_sd, len(t.models))
+        plt.errorbar(x, yavg, yerr=yerror, c='b')
+
+        if s2frag != "":
+            s2avg=numpy.average(state2.exp_model.get_model_average()[s2frag.start_res+1:s2frag.end_res])
+            x2=[]
+            yavg2=[]
+            yerror2=[]
+            #print(s2frag, len(s2frag.timepoints))
+            for t in s2frag.timepoints:
+                # Plot experimental data
+                #print(t.models)
+                if t.get_model_avg() is not None and t.get_model_sd() is not None:
+                    x2.append(t.time)
+                    xt=[int(t.time)]*len(t.replicates)
+                    yt=[float(r.deut) for r in t.replicates]
+                    plt.scatter(xt, yt, c='r')
+            chi2=s2frag.get_chi_value(sig)
+
+            for t in s2frag.timepoints:
+                #Plot model average and SD errorbars
+                if t.get_model_avg() is not None and t.get_model_sd() is not None:
+                    yavg2.append(t.model_avg)
+                    yerror2.append(t.model_sd)
+                    #print f.seq, t.time, t.model_avg, t.model_sd, len(t.models)
+            plt.errorbar(x2, yavg2, yerr=yerror2, c='r')
+            avg = sum(yavg2)/len(yavg2)
+
+            fig.title=(str(s1frag.seq)+"_"+str(chi)+"_"+str(chi2))
+        else:
+            fig.title=(str(s1frag.seq)+"_"+str(chi))
+
+        ax.set_xscale('log')
+        ax.set_xlabel('Time')
+        ax.set_ylabel('%D Incorporation')
+        #ax.set_xlim=(1,3600)
+        plt.axis=(1,3600,0,100)
+        plt.text(2,avg+10,s1frag.seq)
+        #plt.text(2,avg+5,"Apo chi:"+str(chi))
+        #plt.text(2,avg,"Lilly Diff: "+str(lilly_diff))
+        #plt.text(2,avg-5,"Sali Diff: "+str(sali_diff))
+        #plt.text(1,avg-5,"Sali Exp Diff: "+str(exp_diff))
+
+        if show_plot==False:
+            plt.savefig(outdir+outfile, bbox_inches=0, format="png")
+        else:
+            plt.show()
+            plt.savefig(outdir+outfile, bbox_inches=0, format="png")
+        plt.close()
+        fig.clear()
+
+
 def get_cdf(ax,data,pos, bp=False):
     '''
     create violin plots on an axis
