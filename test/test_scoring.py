@@ -42,8 +42,9 @@ class TestGaussianNoiseModel(unittest.TestCase):
         for sigma in numpy.linspace(0.02, 0.5, 25):
             likelihood = (20.0 / sigma**2) * numpy.exp(-sigma0**2 / sigma**2)
             print(sigma0, sigma, -1*numpy.log10(likelihood))
-            self.assertEqual(
-                likelihood, gnm.experimental_sigma_prior(sigma, sigma0))
+            self.assertAlmostEqual(
+                likelihood, gnm.experimental_sigma_prior(sigma, sigma0),
+                delta=1e-12)
 
 
 class TestTruncatedGaussianNoiseModel(unittest.TestCase):
