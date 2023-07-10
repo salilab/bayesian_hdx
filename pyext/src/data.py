@@ -477,7 +477,7 @@ class Peptide(object):
             avg, sd = tp.get_avg_sd()
             vals.append(avg)
 
-        return(numpy.average(vals))
+        return numpy.average(vals)
 
     def set_sigma(self, sigma):
         self.sigma = sigma
