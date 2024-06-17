@@ -125,7 +125,7 @@ class ParseOutputFile(object):
     def models_to_protection_factors(self, models):
         # Input a list of list of integers.
         # CHECK THAT THE MODEL SIZE IS CORRECT!
-        if type(models[0]) != list:
+        if not isinstance(models[0], list):
             models = [models]
 
         output = []

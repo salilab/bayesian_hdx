@@ -475,7 +475,7 @@ def plot_residue_rate_distributions(
 
     # Get data and place into list of lists.
 
-    if type(model_files) != list:
+    if not isinstance(model_files, list):
         model_files = [model_files]
 
     d_list = []
@@ -610,7 +610,7 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
 
     # Get data and place into list of lists.
 
-    if type(parse_output) != list:
+    if not isinstance(parse_output, list):
         parse_output = [parse_output]
 
     data_list = []
