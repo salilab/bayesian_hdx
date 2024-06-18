@@ -26,4 +26,6 @@ jobs:
         py.test --cov=. --cov-branch --cov-report=xml -v test
         flake8 pyext/src/ --extend-ignore=F821
         flake8 test/ --extend-ignore=F841,E402
-    - uses: codecov/codecov-action@v1
+    - uses: codecov/codecov-action@v4
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
