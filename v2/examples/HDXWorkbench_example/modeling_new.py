@@ -24,7 +24,7 @@ if inseq=="":
 
 
 ###  output directory for this simulation.
-outputdir = "./output_v2/"
+outputdir = "./output_v2_test/"
 ###   
 ##########################################
 ###    Experimental  Input Parameters 

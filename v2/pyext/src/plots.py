@@ -2,19 +2,20 @@
 """
 
 from __future__ import print_function
-import os
-import system
-import numpy
+
 import math
-import analysis
-#from pylab import *
+import os
+
+# from pylab import *
 import matplotlib
+import numpy
+
+import analysis
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import scipy
 #from scipy.stats import gaussian_kde
 #from numpy.random import normal
-from scipy.integrate import simps
 import tools
    
 
@@ -462,7 +463,6 @@ def plot_residue_rate_distributions(model_files, rate_bins = None, resrange=None
     # Input is a standard output model file and the rate bins
     # Should note the sectors as well, along with overlap.
     # Outputs a plot with a sing
-    import csv
 
     colors = ["red", "blue", "yellow", "green"]
 
@@ -585,7 +585,6 @@ def plot_residue_protection_factors(parse_output, rate_bins=None,
     # Input is a standard output model file and the rate bins
     # Should note the sectors as well, along with overlap.
     # Outputs a plot with a sing
-    import csv
 
     colors = ["red", "blue", "yellow", "green"]
 
