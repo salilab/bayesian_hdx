@@ -2,8 +2,13 @@
    Analysis functions for HDX simulations
 """
 from __future__ import print_function
-import numpy
+
 import os.path
+
+from matplotlib import *
+from pylab import *
+
+import hxio
 
 
 class Convergence(object):
@@ -11,6 +16,7 @@ class Convergence(object):
     Given two ParseOutputFile classes,
     allow testing of various convergence and clustering metrics
     '''
+
     def __init__(self, parse_output1, parse_output2):
         self.sample1 = parse_output1
         self.sample2 = parse_output2
@@ -45,9 +51,7 @@ class ParseOutputFile(object):
 
             # #-symbol meas datasets
             elif line[0:2] == "# ":
-                self.datafiles.append(
-                    (line[2:].split("|")[0].strip(),
-                     float(line[2:].split("|")[1].strip())))
+                self.datafiles.append((line[2:].split("|")[0].strip(), float(line[2:].split("|")[1].strip())))
 
             # @-symbol means sectors
             elif line[0:2] == "@ ":
@@ -81,11 +85,11 @@ class ParseOutputFile(object):
     def get_datasets(self):
         if len(self.datasets) == 0:
             self.generate_datasets()
-        return datasets
+        return self.datasets
 
     def generate_datasets(self):
         for f in self.datafiles:
-            datasets.append(hxio.import_json(f))
+            self.datasets.append(hxio.import_json(f))
 
     def get_best_scoring_models(self, N, sigmas=False, return_pf=False):
         ''' Get the N best scoring models from the output file
@@ -104,8 +108,7 @@ class ParseOutputFile(object):
                 score = float(line.split("|")[1].strip())
 
                 # if the score is better than the last best score
-                if (len(best_scoring_models) < N
-                        or score < best_scoring_models[-1][0]):
+                if len(best_scoring_models) < N or score < best_scoring_models[-1][0]:
                     if len(best_scoring_models) >= N:
                         del best_scoring_models[-1]
                     model_string = line[1:].split("|")[0].strip()
@@ -113,11 +116,9 @@ class ParseOutputFile(object):
                     for m in model_string.split(" "):
                         model_list.append(int(m))
                     if return_pf:
-                        model_list = self.models_to_protection_factors(
-                            model_list)
+                        model_list = self.models_to_protection_factors(model_list)
                     best_scoring_models.append((score, model_list))
-                    best_scoring_models = sorted(
-                        best_scoring_models, key=lambda x: x[0])
+                    best_scoring_models = sorted(best_scoring_models, key=lambda x: x[0])
 
         self.best_scoring_models = best_scoring_models
         return best_scoring_models
@@ -134,7 +135,7 @@ class ParseOutputFile(object):
             for res in range(len(m)):
                 if res + 1 in self.observed_residues:
                     # print(res+1, m[res-1], self.pf_grids[res+1])
-                    pf_model.append(float(self.pf_grids[res+1][m[res-1]-1]))
+                    pf_model.append(float(self.pf_grids[res + 1][m[res - 1] - 1]))
 
                 else:
                     pf_model.append(numpy.nan)
@@ -148,6 +149,7 @@ class OutputAnalysis(object):
     Class that analyzes an output file and
     produces standard graphs
     '''
+
     def __init__(self, output):
         self.output = output
 
@@ -155,10 +157,8 @@ class OutputAnalysis(object):
         pass
 
 
-def get_best_scoring_models(modelfile, scorefile, num_best_models=100,
-                            prefix=None, write_file=True):
-    # takes a model and score file and writes a new model file with the
-    # best X scoring models.
+def get_best_scoring_models(modelfile, scorefile, num_best_models=100, prefix=None, write_file=True):
+    # takes a model and score file and writes a new model file with the best X scoring models.
     # This new file can then be imported into an HDXModel class for analysis
     i = 0
     if prefix is None:
@@ -187,9 +187,10 @@ def get_best_scoring_models(modelfile, scorefile, num_best_models=100,
     for i in range(num_best_models):
         top_score_indices.append(scores.index(min(scores)))
         top_scores.append(min(scores))
-        scores[scores.index(min(scores))] = max(scores)+1
+        # print(scores, min(scores), scores.index(min(scores)), top_score_indices)
+        scores[scores.index(min(scores))] = max(scores) + 1
     if write_file:
-        _ = open(outfile, "w")
+        output_file = open(outfile, "w")
         return top_models, top_scores
     else:
         for i in top_score_indices:
@@ -207,7 +208,7 @@ def sector_sort(sectors):
         if s.start_res > last_first_res:
             last_first_res = s.start_res
 
-    for n in range(last_first_res+1):
+    for n in range(last_first_res + 1):
         for s in sectors:
             if s.start_res == n:
                 sorted_sectors.append(s)
@@ -225,8 +226,7 @@ def array_frequency(a):
     return numpy.vstack((unique, count)).T
 
 
-def get_residue_rate_probabilities(modelfile, scorefile, sectors, seq, grid,
-                                   num_models=5,
+def get_residue_rate_probabilities(modelfile, scorefile, sectors, seq, grid, num_models=5,
                                    outfile="rate_probabilities.dat", offset=0):
     # Given a set of models (from a best_models.dat file)
     # returns the probability of observing each rate
@@ -238,8 +238,7 @@ def get_residue_rate_probabilities(modelfile, scorefile, sectors, seq, grid,
     if hasattr(grid, '__iter__'):
         grid = len(grid)
 
-    best_models, best_scores = get_best_scoring_models(
-        modelfile, scorefile, num_models, write_file=False)
+    best_models, best_scores = get_best_scoring_models(modelfile, scorefile, num_models, write_file=False)
 
     best_models = numpy.array(best_models)
 
@@ -248,35 +247,34 @@ def get_residue_rate_probabilities(modelfile, scorefile, sectors, seq, grid,
     # Loop over all sectors and add up instances of each rate bin
     for s in sorted_sectors:
         # get all instances of each rate
-        freq = array_frequency(best_models[:, s.start_res:s.end_res+1])
+        freq = array_frequency(best_models[:, s.start_res:s.end_res + 1])
         model = numpy.zeros(grid)
         for i in freq:
-            model[i[0]] = 1.0*i[1]/s.num_amides/num_models
+            model[i[0]] = 1.0 * i[1] / s.num_amides / num_models
 
-        for n in range(s.start_res, s.end_res+1):
-            if seq[n+offset] == "P":
+        for n in range(s.start_res, s.end_res + 1):
+            if seq[n + offset] == "P":
                 of.write(n, "P", numpy.zeros(len(grid), numpy.int))
             else:
-                of.write(str(n+1)+", "+seq[n+offset]+", " +
-                         str([m for m in model])+"\n")
+                of.write(str(n + 1) + ", " + seq[n + offset] + ", " + str([m for m in model]) + "\n")
 
 
 def get_convergence(state, num_points=None):
     """ Takes all models in the exp_model of the given state and
-    divides them into two halves.  The average and SD for each residue
-    is computed for each ensemble and compared via a Two-sample
-    Kolmogorov-Smirnov Test"""
+    divides them into two halves.  The average and SD for each residue is computed
+    for each ensemble and compared via a Two-sample Kolmogorov-Smirnov Test"""
     these_states = model.states
     for state in these_states:
         es = state.exp_model
-        # sectors = state.sectors
-        if num_points is None or num_points > len(es.exp_models)/2:
-            num_points = len(es.exp_models)/2
-        exp_model1 = es.exp_models[
-            len(es.exp_models)/2-num_points:len(es.exp_models)/2]
-        exp_model2 = es.exp_models[len(es.exp_models)-num_points:-1]
+        sectors = state.sectors
+        if num_points is None or num_points > len(es.exp_models) / 2:
+            num_points = len(es.exp_models) / 2
+        exp_model1 = es.exp_models[len(es.exp_models) / 2 - num_points:len(es.exp_models) / 2]
+        exp_model2 = es.exp_models[len(es.exp_models) - num_points:-1]
         zscore = calculate_zscore(exp_model1, exp_model2, state, state)
-        print(zscore)
+        # print(state.state_name)
+        # print zscore
+        # time.sleep(1)
 
 
 def get_average_sector_values(exp_models, state):
@@ -291,48 +289,53 @@ def get_cdf(exp_models):
     equivalent to the empirical density function for each residue. """
     exp_model_edf = numpy.empty((len(exp_models), len(exp_models[0])))
     A = numpy.array(exp_models)
-    # y = numpy.linspace(1./len(exp_models), 1, len(exp_models))
+    y = numpy.linspace(1. / len(exp_models), 1, len(exp_models))
     print(len(exp_models[0]))
     for i in range(len(exp_models[0])):
-        counts, edges = numpy.histogram(
-            A[:, i], len(A), range=(-6, 0), density=False)
+        counts, edges = numpy.histogram(A[:, i], len(A), range=(-6, 0), density=False)
         # print i,A[:,i],counts,numpy.cumsum(counts*1.0/len(A))
-        exp_model_edf[:, i] = numpy.cumsum(counts*1.0/len(A))
+        exp_model_edf[:, i] = numpy.cumsum(counts * 1.0 / len(A))
     return exp_model_edf
 
 
 def get_chisq(exp_models1, exp_models2, nbins):
-    """Takes two lists of exp_models and returns the chi2 value along
-       the second axis"""
+    """ Takes two lists of exp_models and returns the chi2 value along the second axis """
     A = numpy.array(exp_models1)
     B = numpy.array(exp_models2)
+    # y=numpy.linspace(1./len(exp_models1),1,len(exp_models1))
     print(len(exp_models1[0]))
     for i in range(269, len(exp_models1[0])):
         meanA = numpy.mean(A[:, i])
-        ssd = numpy.std(A[:, i])**2 + numpy.std(B[:, i])**2
+        ssd = numpy.std(A[:, i]) ** 2 + numpy.std(B[:, i]) ** 2
         sstdev = numpy.sqrt(ssd / 5000)
         meanB = numpy.mean(B[:, i])
         t = 1.96
         ci = t * sstdev
         dm = meanA - meanB
-        print(i, dm, ci, dm/ci)
-    # return exp_model_edf
+        print(i, dm, ci, dm / ci)
+        # fig=plt.figure()
+        # ax1 = fig.add_subplot(111)
+        # ax1.plot(range(nbins), countsA)
+        # ax1.plot(range(nbins), countsB)
+        # plt.show()
+
+        # data = [countsA, countsB]
+        # print(i, chi2_contingency(data))
+    return exp_model_edf
 
 
 def calculate_ks_statistic(edf1, edf2):
     """ Takes a two edfs and returns a vector of the Kolmogorov-Smirnov
     statistic for each residue"""
     maxdiff = numpy.zeros(len(edf1[0]))
-    threshold = 1.98*numpy.sqrt(
-        1.0*(len(edf1)+len(edf2))/(1.0*len(edf1)*len(edf2)))
+    threshold = 1.98 * numpy.sqrt(1.0 * (len(edf1) + len(edf2)) / (1.0 * len(edf1) * len(edf2)))
     if len(edf1[0]) != len(edf2[0]):
-        print(
-            "Different Number of Residues for EDFs in KS calculation: Exiting")
+        print("Different Number of Residues for EDFs in KS calculation: Exiting")
         exit()
     for r in range(len(edf1[0])):
         maxdiff[r] = 0
         for m in range(len(edf1[:, 0])):
-            diff = abs(edf1[m, r]-edf2[m, r])
+            diff = abs(edf1[m, r] - edf2[m, r])
             if diff > maxdiff[r]:
                 maxdiff[r] = diff
     return maxdiff, threshold
@@ -341,18 +344,15 @@ def calculate_ks_statistic(edf1, edf2):
 def get_sector_averaged_models(exp_models, state):
     sector_avg_models = []
     for n in range(len(exp_models)):
-        sector_avg_models.append(
-            state.exp_model.get_sector_averaged_protection_values(
-                exp_models[n], state.sectors))
+        sector_avg_models.append(state.exp_model.get_sector_averaged_protection_values(exp_models[n], state.sectors))
     return sector_avg_models
 
 
 def calculate_zscore(exp_models1, exp_models2, state1, state2):
     avg1, sd1 = get_average_sector_values(exp_models1, state1)
     avg2, sd2 = get_average_sector_values(exp_models2, state2)
-    zscore = numpy.subtract(avg1, avg2) / \
-        numpy.sqrt(numpy.add(numpy.add(numpy.square(sd1), numpy.square(sd2)),
-                             0.00001))
+    zscore = numpy.subtract(avg1, avg2) / numpy.sqrt(
+        numpy.add(numpy.add(numpy.square(sd1), numpy.square(sd2)), 0.00001))
     return zscore
 
 
